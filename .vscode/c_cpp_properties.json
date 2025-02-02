@@ -3,7 +3,7 @@
         {
             "name": "Win32",
             "includePath": [
-                "${workspaceFolder}/MyHeaders",
+                "${workspaceFolder}/Headers",
                 "c:/tools/EGE/include",
                 "C:/tools/msys64/ucrt64/include"
                 /*"C:/Users/ray_s/Downloads/glfw-3.4.bin.WIN64/lib-static-ucrt",*/

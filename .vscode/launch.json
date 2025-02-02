@@ -6,11 +6,10 @@
             "request": "launch",
             "program": "${fileDirname}/${fileBasenameNoExtension}.exe",
             "args": [
-                "C:/Users/ray_s/desktop/GitHub/test/makefile",
-                "command"
             ],
             "stopAtEntry": false,
-            "cwd": "C:/tools/msys64/ucrt64/bin",
+            //"cwd": "C:/tools/msys64/ucrt64/bin",
+            "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
