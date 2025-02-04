@@ -12,6 +12,7 @@ int main() { std::cout << "Start program.\n";
     initGL(4, 6);
     //initErrorCallback();
     GLFWwindow* window = createWindow(SCR_WIDTH, SCR_HEIGHT, "OpenGL");
+    //GLFWwindow* window2 = createWindow(SCR_WIDTH, SCR_HEIGHT, "OpenGL2"); glfwMakeContextCurrent(window2);
     glfwMakeContextCurrent(window);// glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
     //glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetWindowSizeCallback(window, framebuffer_size_callback);/*
@@ -72,13 +73,12 @@ int main() { std::cout << "Start program.\n";
 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
     glfwTerminate();
-    std::cout << "\033c";
+    //std::cout << "\033c";
     return 0;
 }
 

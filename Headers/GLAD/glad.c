@@ -1759,6 +1759,10 @@ static void find_coreGL(void) {
     version = (const char*) glGetString(GL_VERSION);
     if (!version) return;
 
+#ifdef __GLAD_PRINT_VERSION__
+	std::cout << "OPENGL-version: " << version << std::endl;
+#endif
+
     for (i = 0;  prefixes[i];  i++) {
         const size_t length = strlen(prefixes[i]);
         if (strncmp(version, prefixes[i], length) == 0) {
