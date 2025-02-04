@@ -22,12 +22,12 @@ void initGLFW(short major, short minor) {
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
     //return true;
-}
+}/*
 void initGL(short major, short minor) {
     initGLFW(major, minor);
-}
+}*/
 
-GLFWwindow* createWindow(int width, int height, const char* title) {
+GLFWwindow* glfwCreateWindow(int width, int height, const char* title, bool context=true) {
     GLFWwindow *window = glfwCreateWindow(width, height, title, NULL, NULL);
     if (window == NULL) {
         std::cerr << "Failed to create GLFW window\n";
@@ -36,7 +36,9 @@ GLFWwindow* createWindow(int width, int height, const char* title) {
     } else {
         std::cout << "Created GLFW window successfully\n";
     }
-    //glfwMakeContextCurrent(window);
+    if(context) {
+        glfwMakeContextCurrent(window);
+    }
     return window;
 }
 
@@ -105,4 +107,13 @@ void initErrorCallback() {
         });
     }
 }//*/
+
+void gl_Viewport(int width, int height) {
+    glViewport(0, 0, width, height);
+}
+
+void glfwSetCursor(GLFWwindow* window, int value) {
+    glfwSetInputMode(window, GLFW_CURSOR, value);
+}
+
 #endif // _INIT_GL_H_
