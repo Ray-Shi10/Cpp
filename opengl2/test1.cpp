@@ -192,11 +192,7 @@ void processInput(GLFWwindow *window) {
     if(glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
         cameraMove += glm::vec3( 0.0f, 1.0f, 0.0f);
     if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-        cameraMove += glm::vec3( 0.0f,-1.0f, 0.0f);/*
-    if(glm::lengthSQ(cameraMove) > 0.0f) {
-        std::cout << "Camera move: " << glm::toString(cameraMove) << "\n";
-        std::cout << "----------------------------\n";
-    }//*/
+        cameraMove += glm::vec3( 0.0f,-1.0f, 0.0f);
     camera.move(cameraMove, static_cast<float>(deltaTime*100));
     if(glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
         camera = Camera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(SCR_WIDTH, SCR_HEIGHT, 800), 0.1f, 100.0f, 0.1f, 0.005f, 0.0f);
@@ -222,18 +218,6 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
     float yoffset = ypos - lastY;
     lastX = xpos;
     lastY = ypos;
-    /*
-    if(glm::lengthSQ(glm::vec2(xoffset, yoffset)) > 0.0f)
-        std::cout << "Mouse Offset: " << xoffset << " " << yoffset << "\n";//*/
 
     camera.rotate(glm::vec3(yoffset, xoffset, 0.0f));
-}
-
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
-    //now disabled (because sens_zoom is 0.0f)
-    camera.view.z -= static_cast<float>(yoffset) * 1000 * camera.sens_zoom;
-    if(camera.view.z < 100.0f)
-        camera.view.z = 100.0f;
-    if(camera.view.z > 1000.0f)
-        camera.view.z = 1000.0f;
 }

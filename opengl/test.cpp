@@ -9,9 +9,9 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 int main() { std::cout << "Start program.\n";
-    initGL(4, 6);
+    initGLFW(4, 6);
     //initErrorCallback();
-    GLFWwindow* window = createWindow(SCR_WIDTH, SCR_HEIGHT, "OpenGL");
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "OpenGL");
     glfwMakeContextCurrent(window);// glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
     //glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetWindowSizeCallback(window, framebuffer_size_callback);/*
@@ -63,6 +63,11 @@ int main() { std::cout << "Start program.\n";
         }
         printf("\n    scancode: %d\n    mods: %d\n", scancode, mods);
     });
+    glfwSetCursorPosCallback(window, [](GLFWwindow* window, double xpos, double ypos) {
+        std::cout << "Cursor position: " << xpos << " " << ypos << "\n";
+    });
+
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 
     initGLAD();
     //std::cout << GLVersion.major << " " << GLVersion.minor << std::endl;

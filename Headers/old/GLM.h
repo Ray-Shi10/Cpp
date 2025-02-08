@@ -8,15 +8,15 @@ namespace glm {
     typedef float real;
     #include "glm_typedef.h"
     constexpr real PI = 3.14159265358979323846f;
+#ifndef _DEBUG
+    //#include "GLM.h"
+#endif
 
     template <int n, typename T, qualifier Q=qualifier::defaultp>
     GLM_FUNC_QUALIFIER std::string toString(vec<n, T, Q> const& v) {
         std::string s = "(";
-        char tmp[10];
         for(int i=0; i<n; i++) {
-            sprintf(tmp, "%02.3f", v[i]);
-            if(tmp[0] != '-') s += ' ';
-            s += tmp;
+            s += std::to_string(v[i]);
             if(i<n-1) s += ", ";
         }
         s += ")";
@@ -27,7 +27,7 @@ namespace glm {
         std::string s = "{";
         for(int i=0; i<n; i++) {
             s += toString(m[i]);
-            if(i<n-1) s += ",\n ";
+            if(i<n-1) s += ", ";
         }
         s += "}";
         return s;
@@ -39,49 +39,49 @@ namespace glm {
 
 	template <typename T, qualifier Q=qualifier::defaultp>
     GLM_FUNC_QUALIFIER mat<4, 4, T, Q> rotateXl(T angle) {
-        T const&a = angle;
+        T const a = angle;
         T const c = cos(a);
         T const s = sin(a);
 
         mat<4, 4, T, Q> Result(
             T(1), T(0), T(0), T(0),
-            T(0),   c ,  -s , T(0),
-            T(0),   s ,   c , T(0),
+            T(0),   c ,   s , T(0),
+            T(0),  -s ,   c , T(0),
             T(0), T(0), T(0), T(1)
         );
         return Result;
     }
     template <typename T, qualifier Q=qualifier::defaultp>
     GLM_FUNC_QUALIFIER mat<4, 4, T, Q> rotateXr(T angle) {
-        return rotateXr(-angle);
+        return rotateXl(-angle);
     }
     template <typename T, qualifier Q=qualifier::defaultp>
     GLM_FUNC_QUALIFIER mat<4, 4, T, Q> rotateYl(T angle) {
-        T const&a = angle;
+        T const a = angle;
         T const c = cos(a);
         T const s = sin(a);
 
         mat<4, 4, T, Q> Result(
-              c , T(0),   s , T(0),
+              c , T(0),  -s , T(0),
             T(0), T(1), T(0), T(0),
-             -s , T(0),   c , T(0),
+              s , T(0),   c , T(0),
             T(0), T(0), T(0), T(1)
         );
         return Result;
     }
     template <typename T, qualifier Q=qualifier::defaultp>
     GLM_FUNC_QUALIFIER mat<4, 4, T, Q> rotateYr(T angle) {
-        return rotateYr(-angle);
+        return rotateYl(-angle);
     }
     template <typename T, qualifier Q=qualifier::defaultp>
     GLM_FUNC_QUALIFIER mat<4, 4, T, Q> rotateZl(T angle) {
-        T const&a = angle;
+        T const a = angle;
         T const c = cos(a);
         T const s = sin(a);
 
         mat<4, 4, T, Q> Result(
-              c ,  -s , T(0), T(0),
-              s ,   c , T(0), T(0),
+              c ,   s , T(0), T(0),
+             -s ,   c , T(0), T(0),
             T(0), T(0), T(1), T(0),
             T(0), T(0), T(0), T(1)
         );
@@ -89,11 +89,11 @@ namespace glm {
     }
     template <typename T, qualifier Q=qualifier::defaultp>
     GLM_FUNC_QUALIFIER mat<4, 4, T, Q> rotateZr(T angle) {
-        return rotateZr(-angle);
-    }/*
+        return rotateZl(-angle);
+    }
     template <typename T, qualifier Q=qualifier::defaultp>
-    GLM_FUNC_QUALIFIER mat<4, 4, T, Q> rotateR(T angle, vec<3, T, Q> axis) {
-        T const&a = angle;
+    GLM_FUNC_QUALIFIER mat<4, 4, T, Q> rotateL(T angle, vec<3, T, Q> axis) {
+        T const a = angle;
         T const c = cos(a);
         T const s = sin(a);
         T const omc = T(1) - c;
@@ -109,20 +109,20 @@ namespace glm {
         return Result;
     }
     template <typename T, qualifier Q=qualifier::defaultp>
-    GLM_FUNC_QUALIFIER mat<4, 4, T, Q> rotateL(T angle, vec<3, T, Q> axis) {
+    GLM_FUNC_QUALIFIER mat<4, 4, T, Q> rotateR(T angle, vec<3, T, Q> axis) {
         return rotateL(-angle, axis);
-    }*/
+    }
     template <typename T, qualifier Q=qualifier::defaultp>
-    GLM_FUNC_QUALIFIER mat<4, 4, T, Q> rotateXYZr(vec<3, T, Q> const& angles) {
-        T const&a = angles.x;
-        T const b = angles.y;
-        T const c = angles.z;
-        T const cosA = cos(a);
-        T const sinA = sin(a);
-        T const cosB = cos(b);
-        T const sinB = sin(b);
-        T const cosC = cos(c);
-        T const sinC = sin(c);
+    GLM_FUNC_QUALIFIER mat<4, 4, T, Q> rotateXYZl(vec<3, T, Q> const& angles) {
+        T a = angles.x;
+        T b = angles.y;
+        T c = angles.z;
+        T cosA = cos(a);
+        T sinA = sin(a);
+        T cosB = cos(b);
+        T sinB = sin(b);
+        T cosC = cos(c);
+        T sinC = sin(c);
 
         mat<4, 4, T, Q> Result(
             cosB * cosC, cosB * sinC, -sinB, T(0),
@@ -133,16 +133,16 @@ namespace glm {
         return Result;
     }
     template <typename T, qualifier Q=qualifier::defaultp>
-    GLM_FUNC_QUALIFIER mat<4, 4, T, Q> rotateXYZl(vec<3, T, Q> const& angles) {
-        return rotateXYZr(-angles);
-    }
-    template <typename T, qualifier Q=qualifier::defaultp>
-    GLM_FUNC_QUALIFIER mat<4, 4, T, Q> rotateYXZr(T x, T y, T z) {
-        return rotateXYZr(vec<3, T, Q>(y, x, z));
+    GLM_FUNC_QUALIFIER mat<4, 4, T, Q> rotateXYZr(vec<3, T, Q> const& angles) {
+        return rotateXYZl(-angles);
     }
     template <typename T, qualifier Q=qualifier::defaultp>
     GLM_FUNC_QUALIFIER mat<4, 4, T, Q> rotateYXZl(T x, T y, T z) {
         return rotateXYZl(vec<3, T, Q>(y, x, z));
+    }
+    template <typename T, qualifier Q=qualifier::defaultp>
+    GLM_FUNC_QUALIFIER mat<4, 4, T, Q> rotateYXZr(T x, T y, T z) {
+        return rotateXYZr(vec<3, T, Q>(y, x, z));
     }
     template <typename T, qualifier Q=qualifier::defaultp>
     GLM_FUNC_QUALIFIER mat<4, 4, T, Q> scale(vec<3, T, Q> const& v) {

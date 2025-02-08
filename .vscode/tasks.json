@@ -7,6 +7,7 @@
 			"command": "C:/tools/msys64/ucrt64/bin/g++.exe",
 			"args": [
 				"-fdiagnostics-color=always",
+				//"-fdump-tree-all",
 				"-g",
 				"${file}",
 				"-o",
