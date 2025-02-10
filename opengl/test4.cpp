@@ -1,18 +1,17 @@
+namespace std {
+    int _____tmp;
+}
 #include <initGL.h>
 #include <Camera.h>
 #include <Shader.h>
 #include <Window.h>
+#include <Function.h>
 #include <vector>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
-
-unsigned int SCR_WIDTH = 1000;
-unsigned int SCR_HEIGHT = 1000;
-
-Camera camera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(SCR_WIDTH, SCR_HEIGHT, 800), 0.1f, 100.0f, 0.1f, 0.005f, 0.0f);
 
 bool firstMouse = true;
 bool pause = false;
@@ -25,10 +24,30 @@ float lastFrame = 0.0f;
 int main() {
     initGLFW(4, 6);
 
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "OpenGL");
+    Window window(1000, 1000, "OpenGL 3D");
+    Camera camera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(), 
+                  0.1f, 100.0f, 0.1f, 0.005f, 0.0f);
     glfwSetWindowPos(window, 1500, 1000);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetCursorPosCallback(window, mouse_callback);
+    window.onFramebufferSize = [&](GLFWwindow* window, int width, int height) {
+        camera.view = glm::vec3(width, height, std::min<float>(width/glm::sqrt2, height));
+    };
+    glfwSetCursorPosCallback(window, make_function([&](GLFWwindow* window, double xpos, double ypos) {
+        float x = static_cast<float>(xpos);
+        float y = static_cast<float>(ypos);
+
+        if(firstMouse) {
+            lastX = x;
+            lastY = y;
+            firstMouse = false;
+        }
+
+        float xoffset = x - lastX;
+        float yoffset = y - lastY;
+        lastX = x;
+        lastY = y;
+
+        camera.rotate(glm::vec3(yoffset, xoffset, 0.0f));
+    }));
     glfwSetScrollCallback(window, scroll_callback);
     glfwSetWindowFocusCallback(window, [](GLFWwindow* window, int focused) {
         if(focused == GLFW_FALSE) {
@@ -45,7 +64,7 @@ int main() {
             pause = !pause;
         }
     });
-    
+
     glfwSetCursor(window, GLFW_CURSOR_DISABLED);
 
     initGLAD();

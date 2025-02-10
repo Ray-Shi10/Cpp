@@ -8,6 +8,9 @@ namespace glm {
     typedef float real;
     #include "glm_typedef.h"
     constexpr real PI = 3.14159265358979323846f;
+    constexpr real sqrt2 = 1.41421356237309504880f;
+    constexpr real sqrt3 = 1.73205080756887729352f;
+    constexpr real sqrt5 = 2.23606797749978969640f;
 
     template <int n, typename T, qualifier Q=qualifier::defaultp>
     GLM_FUNC_QUALIFIER std::string toString(vec<n, T, Q> const& v) {

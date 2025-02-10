@@ -23,13 +23,34 @@ public:
 	};
 
     pointer_type func;
+    _function_base() : func(nullptr) {}
+    _function_base(pointer_type f) : func(f) {}
     template <typename _Func>
     _function_base(_Func f) {
         static auto lam = (decltype(f))(f);
-        func = ([](__Args... _args) -> return_type { return lam(_args...); });
+        //func = ([](__Args... _args) -> return_type { return lam(_args...); });
     }
     return_type operator()(__Args... args) const {
         return func(args...);
+    }
+    return_type operator()(tuple_type args) const {
+        return std::apply(func, args);
+    }
+    return_type apply(__Args... args) const {
+        if(!func) {
+            std::cerr << "Function is not callable" << std::endl;
+            return return_type();
+        } else {
+            return func(args...);
+        }
+    }
+    return_type apply(tuple_type args) const {
+        if(!func) {
+            std::cerr << "Function is not callable" << std::endl;
+            return return_type();
+        } else {
+            return std::apply(func, args);
+        }
     }
     operator stl_function_type() const {
         return stl_function_type(func);
