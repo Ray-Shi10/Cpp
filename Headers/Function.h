@@ -28,13 +28,10 @@ public:
     template <typename _Func>
     _function_base(_Func f) {
         static auto lam = (decltype(f))(f);
-        //func = ([](__Args... _args) -> return_type { return lam(_args...); });
+        func = ([](__Args... _args) -> return_type { return static_cast<return_type>(lam(_args...)); });
     }
     return_type operator()(__Args... args) const {
         return func(args...);
-    }
-    return_type operator()(tuple_type args) const {
-        return std::apply(func, args);
     }
     return_type apply(__Args... args) const {
         if(!func) {
@@ -43,6 +40,9 @@ public:
         } else {
             return func(args...);
         }
+    }/*
+    return_type operator()(tuple_type args) const {
+        return std::apply(func, args);
     }
     return_type apply(tuple_type args) const {
         if(!func) {
@@ -51,7 +51,7 @@ public:
         } else {
             return std::apply(func, args);
         }
-    }
+    }*/
     operator stl_function_type() const {
         return stl_function_type(func);
     }
@@ -97,9 +97,9 @@ template <typename Callable>
 struct _function_tmp : _function_tmp<decltype(&Callable::operator())> {};
 
 template <typename _Func>
-using function = typename _function_tmp<_Func>::type;
+using function_t = typename _function_tmp<_Func>::type;
 
 template <typename _Func>
-auto make_function(_Func f) { return function<_Func>(f); }
+auto function(_Func f) { return function_t<_Func>(f); }
 
 #endif

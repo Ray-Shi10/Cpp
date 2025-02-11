@@ -1,9 +1,7 @@
 #ifndef _WINDOW_H_
 #define _WINDOW_H_
 
-#include <GLFW/glfw3.h>
-#include <GLM.h>
-#include <iostream>
+#include <initGL.h>
 #include <Function.h>
 
 class Window {
@@ -11,18 +9,18 @@ public:
     struct windowInfo {
         GLFWwindow* glfwWindow=NULL;
         unsigned int width=-1, height=-1;
-        bool pause=false, active;
+        bool active;
         glm::vec2 pos;
         windowInfo& operator=(const windowInfo& other) {
             width    = other.width;
             height   = other.height;
-            pause    = other.pause;
             active   = other.active;
             pos      = other.pos;
             return *this;
         }
     } window;
     struct mouseInfo {
+        int mode = GLFW_CURSOR_NORMAL;
         bool first = true;
         glm::vec2 last = glm::vec2(0.0f),
                   pos = glm::vec2(0.0f),
@@ -48,25 +46,41 @@ public:
     } frame;
 
     template <typename _CallBack_t>
-    class Callback { public: using _CallBack = function<_CallBack_t>;
-        _CallBack callback;
-        using _SetCallback_t = function<void(GLFWwindow*, _CallBack_t)>;
-        _SetCallback_t setCallBack;
-        Callback(_SetCallback_t setCallBack) : setCallBack(setCallBack) {}
-        template <typename _Func> Callback(_Func func) { setCallBack = make_function(func); }
-        void operator=(_CallBack func) { set(func); }
-        template <typename _Func> void operator=(_Func func) { set(make_function(func)); }
-        void set(_CallBack func) { callback = func; setCallBack(window.glfwWindow, callback); }
+    class Callback { public: using _CallBack = function_t<_CallBack_t>; _CallBack callback;
+        using _SetCallback_t = function_t<void(_CallBack_t)>; _SetCallback_t const setCallBack;
+        template <typename _Func> Callback(_Func func) : setCallBack(function(func)) { }
+        template <typename _Func> void operator=(_Func func) { callback=func; setCallBack(callback); }
         operator _CallBack() { return callback; }
     };
-    Callback<void(GLFWwindow*, int, int)> onFramebufferSize;
+    Callback<void(GLFWwindow*, int, int)> onSize;
+    Callback<void(GLFWwindow*, double, double)> onCursorMove;
+    Callback<void(GLFWwindow*, int, int, int, int)> onKey;
+    Callback<void(GLFWwindow*, int)> onFocus;
 
     //Window(){}
     Window(unsigned int width, unsigned int height, const char* title, bool active=true)
-         :  window  ({glfwCreateWindow(width, height, title, NULL, NULL), width, height, false, active}),
-            mouse   ({true, glm::vec2(0.0f), glm::vec2(0.0f), glm::vec2(0.0f)}),
+         :  window  ({glfwCreateWindow(width, height, title), width, height, active}),
+            mouse   ({GLFW_CURSOR_NORMAL, true, glm::vec2(0.0f), glm::vec2(0.0f), glm::vec2(0.0f)}),
             frame   ({0.0f, 0.0f}),
-            onFramebufferSize(glfwSetFramebufferSizeCallback) {
+            onSize([&](void(*callback)(GLFWwindow*, int, int)){
+                glfwSetFramebufferSizeCallback(window.glfwWindow, callback);
+            }), 
+            onCursorMove([&](void(*callback)(GLFWwindow*, double, double)){
+                glfwSetCursorPosCallback(window.glfwWindow, callback);
+            }), 
+            onKey([&](void(*callback)(GLFWwindow*, int, int, int, int)){
+                glfwSetKeyCallback(window.glfwWindow, callback);
+            }), 
+            onFocus([&](void(*callback)(GLFWwindow*, int)){
+                glfwSetWindowFocusCallback(window.glfwWindow, callback);
+            }) {
+        if(__firstWindow) {
+            __firstWindow = false;
+            glfwSetErrorCallback([](int error, const char* description) {
+                std::cerr << "GLFW-ERROR(" << error << ")::" << description << "\n";
+            });
+            initGLAD();
+        }
         if(window.glfwWindow == NULL) {
             std::cerr << "Failed to create GLFW window\n";
             glfwTerminate();
@@ -84,13 +98,54 @@ public:
     operator GLFWwindow*() { return window.glfwWindow; }
     operator const GLFWwindow*() const { return *this; }
 
+    void setCursorMode(int mode) {
+        mouse.mode = mode;
+    }
+    void applyCursorMode(signed char apply=-1) {
+        if(apply < 0) {
+            apply = window.active;
+        }
+        if(apply) {
+            if(glfwGetInputMode(window.glfwWindow, GLFW_CURSOR) != mouse.mode) {
+                glfwSetInputMode(window.glfwWindow, GLFW_CURSOR, mouse.mode);
+            }
+        } else {
+            if(glfwGetInputMode(window.glfwWindow, GLFW_CURSOR) != GLFW_CURSOR_NORMAL) {
+                glfwSetInputMode(window.glfwWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            }
+        }
+    }
+    void newFrame(float time=glfwGetTime()) {
+        frame.dt = time - frame.lt; frame.lt = time;
+    }
+    bool keyPress(int key) {
+        return glfwGetKey(window.glfwWindow, key) == GLFW_PRESS;
+    }
+
     void getFramebufferSizeEvent(int width, int height) {
         window.width  = width;
         window.height = height;
         mouse.first = true;
-        if(window.active)
+        if(window.active) {
             glViewport(0, 0, width, height);
+        }
     }
+    void getCursorMoveEvent(double xpos, double ypos) {
+        if(mouse.first) {
+            mouse.last = glm::vec2(xpos, ypos);
+            mouse.first = false;
+        }
+        mouse.pos = glm::vec2(xpos, ypos);
+        mouse.offset = mouse.pos - mouse.last;
+        mouse.last = mouse.pos;
+    }
+    void getKeyEvent(int key, int scancode, int action, int mods) {
+    }
+    void getFocusEvent(int focused) {
+    }
+
+private:
+    bool __firstWindow = true;
 };
 
 #endif // _WINDOW_H_

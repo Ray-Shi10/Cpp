@@ -24,38 +24,21 @@ public:
             0.0f         , view.z/view.y,  0.0f                       ,  0.0f,
             0.0f         , 0.0f         , -(  zfar+znear)/(zfar-znear), -1.0f,
             0.0f         , 0.0f         , -(2*zfar*znear)/(zfar-znear),  0.0f
-        ) * proj;
+        );
     }
-    glm::mat4 getMatrix() const {
-        return getProjectionMatrix() * getViewMatrix();
-    }
-    void move_f(glm::vec3 v) {
-        //if(glm::length(v)) printf("        Camera pos before: %d %d %d\n", pos.x, pos.y, pos.z);
-        pos += v;
-        //if(glm::length(v)) printf("        Camera move: %d %d %d\n        Camera pos: %d %d %d", v.x, v.y, v.z, pos.x, pos.y, pos.z);
-    }
-    void move_s(glm::vec3 v) {
-        //printf("    Camera::move_s (sens: %f)\n", sens_move);
-        this->move_f(sens_move * v);
-    }
-    void move(glm::vec3 v, glm::real dt=1.0f) {
-        if(glm::lengthSQ(v) > 0.0f)
-            std::cout << "    Camera move: " << glm::toString(glm::vec3(glm::rotateYl(dir.y) * glm::vec4(v,1.0f))) << "\n";
-        move_s(dt * glm::rotateYl(dir.y) * glm::vec4(v,1.0f));
-        //printf("Camera::move (dt: %f)\n", dt);
-        //printf("vec: %f %f %f\n", v.x, v.y, v.z);
-        //move_s(v * dt);
-    }
+    glm::mat4 getMatrix() const { return getProjectionMatrix() * getViewMatrix(); }
+    void move_f(glm::vec3 v) { pos += v; }
+    void move_s(glm::vec3 v) { move_f(sens_move * v); }
+    void move(glm::vec3 v, glm::real dt=1.0f) { move_s(dt * glm::rotateYl(dir.y) * glm::vec4(v,1.0f)); }
     void rotate_f(glm::vec3 v) { dir += v; }
     void rotate_s(glm::vec3 v) { rotate_f(v * sens_turn); }
-    void rotate(glm::vec3 v, glm::real dt=1.0f) {
-        rotate_s(dt * v);//*
+    void rotate(glm::vec3 v, glm::real dt=1.0f) { rotate_s(dt * v);
         if(dir.x >=  glm::PI/2) dir.x  =  glm::PI / 2;
         if(dir.x <= -glm::PI/2) dir.x  = -glm::PI / 2;
         if(dir.y >   glm::PI  ) dir.y -=  glm::PI * 2;
         if(dir.y <  -glm::PI  ) dir.y +=  glm::PI * 2;
         if(dir.z >=  glm::PI  ) dir.z -=  glm::PI * 2;
-        if(dir.z <= -glm::PI  ) dir.z +=  glm::PI * 2;//*/
+        if(dir.z <= -glm::PI  ) dir.z +=  glm::PI * 2;
     }
 };
 #endif // _CAMERA_H_

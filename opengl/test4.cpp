@@ -8,66 +8,34 @@ namespace std {
 #include <Function.h>
 #include <vector>
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void processInput(GLFWwindow *window);
-
-bool firstMouse = true;
-bool pause = false;
-float lastX = 0;
-float lastY = 0;
-
-float deltaTime = 0.0f;
-float lastFrame = 0.0f;
-
-int main() {
-    initGLFW(4, 6);
-
-    Window window(1000, 1000, "OpenGL 3D");
+int main() { initGLFW(4, 6);
+    Window window(1,1, "OpenGL 3D");
     Camera camera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(), 
                   0.1f, 100.0f, 0.1f, 0.005f, 0.0f);
     glfwSetWindowPos(window, 1500, 1000);
-    window.onFramebufferSize = [&](GLFWwindow* window, int width, int height) {
+    window.onSize = [&](GLFWwindow*, int width, int height) {
+        window.getFramebufferSizeEvent(width, height);
         camera.view = glm::vec3(width, height, std::min<float>(width/glm::sqrt2, height));
+    }; glfwSetWindowSize(window, 1000, 1000);
+    window.onCursorMove = [&](GLFWwindow*, double xpos, double ypos) {
+        window.getCursorMoveEvent(xpos, ypos);
+        camera.rotate(glm::vec3(window.mouse.offset.y, window.mouse.offset.x, 0.0f));
     };
-    glfwSetCursorPosCallback(window, make_function([&](GLFWwindow* window, double xpos, double ypos) {
-        float x = static_cast<float>(xpos);
-        float y = static_cast<float>(ypos);
-
-        if(firstMouse) {
-            lastX = x;
-            lastY = y;
-            firstMouse = false;
+    window.onKey = [&](GLFWwindow*, int key, int scancode, int action, int mods) {
+        window.getKeyEvent(key, scancode, action, mods);
+        if(mods & GLFW_MOD_CONTROL) {
+            glfwSetWindowShouldClose(window, true);
         }
-
-        float xoffset = x - lastX;
-        float yoffset = y - lastY;
-        lastX = x;
-        lastY = y;
-
-        camera.rotate(glm::vec3(yoffset, xoffset, 0.0f));
-    }));
-    glfwSetScrollCallback(window, scroll_callback);
-    glfwSetWindowFocusCallback(window, [](GLFWwindow* window, int focused) {
-        if(focused == GLFW_FALSE) {
-            pause = true;
-        }
-    });
-    glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
         if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-            if(!pause) {
-                if(mods & (GLFW_MOD_SHIFT|GLFW_MOD_CONTROL|GLFW_MOD_ALT) ) {
-                    glfwSetWindowShouldClose(window, true);
-                }
-            }
-            pause = !pause;
+            window.window.active ^= 1;
         }
-    });
+    };
+    window.onFocus = [&](GLFWwindow*, int focused) {
+        window.getFocusEvent(focused);
+        window.window.active &= focused;
+    };
 
-    glfwSetCursor(window, GLFW_CURSOR_DISABLED);
-
-    initGLAD();
+    window.setCursorMode(GLFW_CURSOR_DISABLED);
 
     glEnable(GL_DEPTH_TEST);
 
@@ -145,20 +113,29 @@ int main() {
     glBindVertexArray(0);
 
     while (!glfwWindowShouldClose(window)) {
-        if(pause) {
-            if(glfwGetInputMode(window, GLFW_CURSOR) != GLFW_CURSOR_NORMAL) {
-                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-            }
+        window.newFrame();
+        window.applyCursorMode();
+
+        if(!window.window.active) {
+            window.mouse.first = true;
             glfwWaitEvents();
             continue;
-        } else if(glfwGetInputMode(window, GLFW_CURSOR) != GLFW_CURSOR_DISABLED) {
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         }
-        float currentFrame = static_cast<float>(glfwGetTime());
-        deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;
 
-        processInput(window);
+        {
+            glm::vec3 move(0.0f);
+            if(window.keyPress(GLFW_KEY_W)) { move += glm::vec3( 0.0f, 0.0f,-1.0f); }
+            if(window.keyPress(GLFW_KEY_S)) { move += glm::vec3( 0.0f, 0.0f, 1.0f); }
+            if(window.keyPress(GLFW_KEY_A)) { move += glm::vec3(-1.0f, 0.0f, 0.0f); }
+            if(window.keyPress(GLFW_KEY_D)) { move += glm::vec3( 1.0f, 0.0f, 0.0f); }
+            if(window.keyPress(GLFW_KEY_SPACE)) { move += glm::vec3( 0.0f, 1.0f, 0.0f); }
+            if(window.keyPress(GLFW_KEY_LEFT_SHIFT)) { move += glm::vec3( 0.0f,-1.0f, 0.0f); }
+            if(window.keyPress(GLFW_KEY_R)) {
+                camera.pos = glm::vec3(0.0f, 0.0f, 0.0f);
+                camera.dir = glm::vec3(0.0f, 0.0f, 0.0f);
+            }
+            camera.move(move);
+        }
 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
@@ -168,7 +145,7 @@ int main() {
         //*
         shader1.set("projection", camera.getProjectionMatrix());/*/
         shader1.set("projection", glm::mat4(1.0f));//*/
-        //shader1.set("projection", glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f));
+        //shader1.set("projection", glm::perspective(glm::radians(45.0f), (float)window.window.width / (float)window.window.height, 0.01f, 1000.0f));
 
         shader1.set("view", camera.getViewMatrix());
 
@@ -196,47 +173,4 @@ int main() {
 
     glfwTerminate();
     return 0;
-}
-
-void processInput(GLFWwindow *window) {
-    glm::vec3 cameraMove(0.0f);
-    if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        cameraMove += glm::vec3( 0.0f, 0.0f,-1.0f);
-    if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        cameraMove += glm::vec3( 0.0f, 0.0f, 1.0f);
-    if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        cameraMove += glm::vec3(-1.0f, 0.0f, 0.0f);
-    if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        cameraMove += glm::vec3( 1.0f, 0.0f, 0.0f);
-    if(glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-        cameraMove += glm::vec3( 0.0f, 1.0f, 0.0f);
-    if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-        cameraMove += glm::vec3( 0.0f,-1.0f, 0.0f);
-    camera.move(cameraMove, static_cast<float>(deltaTime*100));
-    if(glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
-        camera = Camera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(SCR_WIDTH, SCR_HEIGHT, 800), 0.1f, 100.0f, 0.1f, 0.005f, 0.0f);
-}
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-    SCR_WIDTH = width; SCR_HEIGHT = height;
-    firstMouse = true;
-    glViewport(0, 0, width, height);
-}
-
-void mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
-    float xpos = static_cast<float>(xposIn);
-    float ypos = static_cast<float>(yposIn);
-
-    if(firstMouse) {
-        lastX = xpos;
-        lastY = ypos;
-        firstMouse = false;
-    }
-
-    float xoffset = xpos - lastX;
-    float yoffset = ypos - lastY;
-    lastX = xpos;
-    lastY = ypos;
-
-    camera.rotate(glm::vec3(yoffset, xoffset, 0.0f));
 }
