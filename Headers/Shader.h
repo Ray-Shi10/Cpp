@@ -75,7 +75,8 @@ private:
                 while(*infoLog == '\n') infoLog++;
                 std::string infoLogStr(infoLog);
                 while(infoLogStr.back() == '\n') infoLogStr.pop_back();
-                std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLogStr.c_str() << "\n -------------------------------------------------------\n";
+                std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLogStr.c_str() << "\n-------------------------------------------------------\n";
+                exit(-1);
             }
         }
         else {
@@ -85,7 +86,7 @@ private:
                 while(*infoLog == '\n') infoLog++;
                 std::string infoLogStr(infoLog);
                 while(infoLogStr.back() == '\n') infoLogStr.pop_back();
-                std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << infoLogStr.c_str() << "\n -------------------------------------------------------\n";
+                std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << infoLogStr.c_str() << "\n-------------------------------------------------------\n";
             }
         }
     }

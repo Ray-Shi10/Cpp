@@ -71,6 +71,8 @@ namespace Rand {
         float random() {
             return (float)rand() / RAND_MAX;
         }
+    #define _RAND_RUN_
+        void run() { rand(); }
 #elif _RANDOM_LEVEL_ == 1
     std::mt19937_64 engine(std::chrono::high_resolution_clock::now().time_since_epoch().count());
     const unsigned long long int max = engine.max(), min = engine.min();
@@ -83,6 +85,8 @@ namespace Rand {
         float random() {
             return dist(engine);
         }
+    #define _RAND_RUN_
+        void run() { engine(); }
     #define _RAND_DISCARD_
         void discard(unsigned long long n) {
             engine.discard(n);
@@ -98,14 +102,17 @@ namespace Rand {
     #define _RAND_MAX_
         template <typename T>
         T random(T max) {
-            return T(T(dist(engine)) * T(max));
+            return T(T(random()) * T(max));
         }
+    #endif
+    #ifndef _RAND_RUN_
+        void run() { random(); }
     #endif
     #ifndef _RAND_MIN_MAX_
     #define _RAND_MIN_MAX_
         template <typename T>
         T random(T min, T max) {
-            return T(T(dist(engine)) * T(max - min) + T(min));
+            return T(T(T(random()) * T(max - min)) + T(min));
         }
     #endif
     #ifndef _RAND_DISCARD_
@@ -113,7 +120,7 @@ namespace Rand {
         template <typename T = unsigned long long, T step = 1>
         void discard(T n) {
             for(T i = 0; i < n; i++) {
-                dist(engine);
+                random();
             }
         }
     #endif

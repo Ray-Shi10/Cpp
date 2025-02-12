@@ -58,7 +58,7 @@ public:
     Callback<void(GLFWwindow*, int, int, int, int)> onKey;
     Callback<void(GLFWwindow*, int)> onFocus;
 
-    //Window(){}
+    Window(const char* title, bool active=true) : Window(1,1,title,active) {}
     Window(unsigned int width, unsigned int height, const char* title, bool active=true)
          :  window  ({glfwCreateWindow(width, height, title), width, height, active}),
             mouse   ({GLFW_CURSOR_NORMAL, true, glm::vec2(0.0f), glm::vec2(0.0f), glm::vec2(0.0f)}),
@@ -81,13 +81,6 @@ public:
                 printf("GLFW-ERROR(%08d):  %s", error, description);
             });
             initGLAD();
-        }
-        if(window.glfwWindow == NULL) {
-            std::cerr << "Failed to create GLFW window\n";
-            glfwTerminate();
-            exit(-1);
-        } else {
-            std::cout << "Created GLFW window successfully\n";
         }
         if(active) {
             glfwMakeContextCurrent(window.glfwWindow);

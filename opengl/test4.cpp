@@ -42,7 +42,6 @@ int main() { initGLFW(4, 6);
     });
 
     window.setCursorMode(GLFW_CURSOR_DISABLED);
-
     glEnable(GL_DEPTH_TEST);
 
     Shader shader1(
