@@ -1,5 +1,5 @@
-#ifndef _INIT_GL_H_
-#define _INIT_GL_H_
+#ifndef _GL_H_
+#define _GL_H_
 
 #include <iostream>
 //namespace GLAD {
@@ -122,4 +122,4 @@ glm::vec2 glfwGetCursorPos(GLFWwindow* window) {
     return glm::vec2(xpos, ypos);
 }*/
 
-#endif // _INIT_GL_H_
+#endif // _GL_H_

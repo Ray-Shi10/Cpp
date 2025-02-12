@@ -1,7 +1,4 @@
-namespace std {
-    int _____tmp;
-}
-#include <initGL.h>
+#include <GL.h>
 #include <Camera.h>
 #include <Shader.h>
 #include <Window.h>
@@ -13,10 +10,13 @@ int main() { initGLFW(4, 6);
     Camera camera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(), 
                   0.1f, 100.0f, 0.1f, 0.005f, 0.0f);
     glfwSetWindowPos(window, 1500, 1000);
+    const float aspect = glm::sqrt2;
     window.onSize = [&](GLFWwindow*, int width, int height) {
-        window.getFramebufferSizeEvent(width, height);
-        camera.view = glm::vec3(width, height, std::min<float>(width/glm::sqrt2, height));
-    }; glfwSetWindowSize(window, 1000, 1000);
+        window.getFramebufferSizeEvent(width, height, false);
+        int size = std::max<int>(width/aspect, height);
+        camera.view = glm::vec3(size*aspect, size, size);
+        glViewport(width/2-size*aspect/2, height/2-size/2, size*aspect, size);
+    }; glfwSetWindowSize(window, 1000*aspect, 1000);
     window.onCursorMove = [&](GLFWwindow*, double xpos, double ypos) {
         window.getCursorMoveEvent(xpos, ypos);
         camera.rotate(glm::vec3(window.mouse.offset.y, window.mouse.offset.x, 0.0f));
@@ -34,6 +34,12 @@ int main() { initGLFW(4, 6);
         window.getFocusEvent(focused);
         window.window.active &= focused;
     };
+    glfwSetCursorEnterCallback(window, [](GLFWwindow* window, int entered) {
+        printf("Cursor %-7s window\n", entered ? "entered" : "left");
+    });
+    glfwSetMouseButtonCallback(window, [](GLFWwindow* window, int button, int action, int mods) {
+        printf("Mouse %-6s %8s", (button == GLFW_MOUSE_BUTTON_LEFT ? "left" : (button == GLFW_MOUSE_BUTTON_RIGHT ? "right" : "middle")), (action == GLFW_PRESS ? "pressed" : "released"));
+    });
 
     window.setCursorMode(GLFW_CURSOR_DISABLED);
 

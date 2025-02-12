@@ -1,7 +1,7 @@
 #ifndef _WINDOW_H_
 #define _WINDOW_H_
 
-#include <initGL.h>
+#include <GL.h>
 #include <Function.h>
 
 class Window {
@@ -11,6 +11,7 @@ public:
         unsigned int width=-1, height=-1;
         bool active;
         glm::vec2 pos;
+        float aspect() { return float(width/height); }
         windowInfo& operator=(const windowInfo& other) {
             width    = other.width;
             height   = other.height;
@@ -77,7 +78,7 @@ public:
         if(__firstWindow) {
             __firstWindow = false;
             glfwSetErrorCallback([](int error, const char* description) {
-                std::cerr << "GLFW-ERROR(" << error << ")::" << description << "\n";
+                printf("GLFW-ERROR(%08d):  %s", error, description);
             });
             initGLAD();
         }
@@ -122,11 +123,12 @@ public:
         return glfwGetKey(window.glfwWindow, key) == GLFW_PRESS;
     }
 
-    void getFramebufferSizeEvent(int width, int height) {
+    void getFramebufferSizeEvent(int width, int height, bool apply=true) {
         window.width  = width;
         window.height = height;
         mouse.first = true;
-        if(window.active) {
+        if(apply)
+        {
             glViewport(0, 0, width, height);
         }
     }

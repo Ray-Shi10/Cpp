@@ -67,19 +67,25 @@ public:
 private:
     void checkCompileErrors(unsigned int shader, std::string type) {
         int success;
-        char infoLog[1024];
+        char *infoLog = new char[1024];
         if (type != "PROGRAM") {
             glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
             if (!success) {
                 glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-                std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+                while(*infoLog == '\n') infoLog++;
+                std::string infoLogStr(infoLog);
+                while(infoLogStr.back() == '\n') infoLogStr.pop_back();
+                std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLogStr.c_str() << "\n -------------------------------------------------------\n";
             }
         }
         else {
             glGetProgramiv(shader, GL_LINK_STATUS, &success);
             if (!success) {
                 glGetProgramInfoLog(shader, 1024, NULL, infoLog);
-                std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+                while(*infoLog == '\n') infoLog++;
+                std::string infoLogStr(infoLog);
+                while(infoLogStr.back() == '\n') infoLogStr.pop_back();
+                std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << infoLogStr.c_str() << "\n -------------------------------------------------------\n";
             }
         }
     }
