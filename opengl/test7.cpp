@@ -5,11 +5,12 @@
 #include <Window.h>
 #include <Function.h>
 #include <Random.h>
+#include <VertexArray.h>
 
 int main() { initGLFW(4, 6);
     Window window("OpenGL 3D");
     Camera camera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(), 
-                  0.1f, 100.0f, 2.0f, 0.005f, 0.0f);
+                  0.1f, 100.0f, 3.0f, 0.005f, 0.0f);
     glfwSetWindowPos(window, 1500, 900);
     const float aspect = glm::sqrt2;
     window.onSize = [&](GLFWwindow*, int width, int height) {
@@ -73,7 +74,7 @@ int main() { initGLFW(4, 6);
         glm::vec3( 1.5f,  2.0f, - 2.5f),
         glm::vec3( 1.5f,  0.2f, - 1.5f),
         glm::vec3(-1.3f,  1.0f,   1.5f)
-    }; const short cubeamount = sizeof(positions)/sizeof(glm::vec2);
+    }; const short cubeamount = sizeof(positions)/sizeof(glm::vec3);
     float sizes[cubeamount];
     for(int i=0; i<cubeamount; i++) {//*
         sizes[i] = Rand::random(0.2f, 0.4f);/*/sizes[i] = 1.0f;//*/
@@ -89,45 +90,19 @@ int main() { initGLFW(4, 6);
         -1.0f, 1.0f,-1.0f,  0.0f, 1.0f, 0.0f,    //5
          1.0f,-1.0f,-1.0f,  1.0f, 0.0f, 0.0f,    //6
         -1.0f,-1.0f,-1.0f,  0.0f, 0.0f, 0.0f     //7
-    }; unsigned int indices[] = {
-        0, 1, 2, 3,    // front
-        4, 5, 6, 7,    // back
-        0, 1, 4, 5,    // top
-        2, 3, 6, 7,    // bottom
-        0, 2, 4, 6,    // right
-        1, 3, 5, 7     // left
     };
-    unsigned int VBO, VAO, EBO, instanceVBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-    glGenBuffers(1, &instanceVBO);
-    glBindVertexArray(VAO);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-                glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-            //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-            glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW);
-            
-            glEnableVertexAttribArray(0);
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void*)0);
-            glEnableVertexAttribArray(1);
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void*)(3*sizeof(float)));
-        glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-            glBufferData(GL_ARRAY_BUFFER, sizeof(positions)+sizeof(sizes), NULL, GL_STATIC_DRAW);
-            glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(positions), &positions[0][0]);
-            glBufferSubData(GL_ARRAY_BUFFER, sizeof(positions), sizeof(sizes), sizes);
-
-            glEnableVertexAttribArray(2);
-            glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)0);
-            glVertexAttribDivisor(2, 1);
-            glEnableVertexAttribArray(3);
-            glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 1*sizeof(float), (void*)sizeof(positions));
-            glVertexAttribDivisor(3, 1);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    unsigned int indices[] = {
+        0, 1, 2, 3, 7, 1, 5, 0, 4, 2, 6, 7, 4, 5
+    };
+    VertexArray VAO;
+    VAO.addBuffer(cubeVertices, sizeof(cubeVertices));
+    VAO.addEleBuf(indices, sizeof(indices));
+    VAO.addAttrib("vec3f", "col3f");
+    VAO.addBuffer(positions, sizeof(positions));
+    VAO.addAttrib("vec3f1");
+    VAO.addBuffer(sizes, sizeof(sizes));
+    VAO.addAttrib("float1");
+    VAO.finish();
 
     while (!glfwWindowShouldClose(window)) {
         window.newFrame();
@@ -159,9 +134,8 @@ int main() { initGLFW(4, 6);
         shader1.set("view", camera.getViewMatrix());
         shader1.set("model", glm::mat4(1.0f));
 
-        glBindVertexArray(VAO);//*
-        glDrawElementsInstanced(GL_TRIANGLE_STRIP, 24, GL_UNSIGNED_INT, 0, cubeamount);/*/
-        glDrawElementsInstancedBaseVertex(GL_TRIANGLE_STRIP, 24, GL_UNSIGNED_INT, 0, cubeamount, 4);//*/
+        glBindVertexArray(VAO);
+        glDrawElementsInstanced(GL_TRIANGLE_STRIP, sizeof(indices)/size_of(GL_UNSIGNED_INT), GL_UNSIGNED_INT, 0, cubeamount);
         glBindVertexArray(0);
 
         glfwSwapBuffers(window);
@@ -169,10 +143,6 @@ int main() { initGLFW(4, 6);
         Sleep(15);
     }
 
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
-    glDeleteBuffers(1, &instanceVBO);
     glfwTerminate();
     return 0;
 }
