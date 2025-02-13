@@ -8,12 +8,13 @@
 class VertexArray {
 private:
     static VertexArray *_nowVAO;
-    typedef unsigned int buffID;
+    typedef unsigned int VBufferID;
     template <typename _T>
     using vector = std::vector<_T>;
     using string = std::string;
+    unsigned short _buffId = 0;
 public:
-    unsigned int VAO; bool binded = false; int attribIndex = 0;
+    unsigned int VAO; bool binded = false;
     struct VertexBuffer {
         unsigned int VBO;
         VertexBuffer() { glGenBuffers(1, &VBO); }
@@ -24,15 +25,17 @@ public:
         void *data; unsigned int size;
     };
     struct Attribute {
-        short size; GLenum type; short divisor;
+        unsigned short size; GLenum type; unsigned short divisor;
     };
     struct Buffer {
-        vector<Attribute> attribs;
-        VB_data *element = nullptr, *buffer = nullptr;
+        struct BuffData : VB_data {
+            vector<Attribute> attribs;
+        }; vector<BuffData> buffs;
+        VB_data *element = nullptr;
     }; vector<Buffer> buffers;
     VertexArray() : buffers(1) { glGenVertexArrays(1, &VAO); }
     ~VertexArray() { glDeleteVertexArrays(1, &VAO);
-        for(buffID VBO : VBOs) { glDeleteBuffers(1, &VBO); }
+        for(VBufferID VBO : VBOs) { glDeleteBuffers(1, &VBO); }
     }
     operator unsigned int() { return VAO; }
     operator const unsigned int() const { return VAO; }
@@ -61,17 +64,28 @@ public:
         }
     }
     template <typename _Buffer_t>
-    void addBuffer(_Buffer_t *buffer, unsigned int size) { bind();
-        //if(!size) { size = sizeof(buffer); }
-        buffers.back().buffer  = new VB_data({buffer, size});
+    void addBuffer(_Buffer_t *buffer, unsigned int size) {
+        if(_buffId) {
+            _buffId = 0;
+            buffers.push_back(Buffer());
+        }
+        buffers.back().buffs.push_back({(void*)buffer, size});
     }
     template <typename _Buffer_t>
-    void addEleBuf(_Buffer_t *buffer, unsigned int size) { bind();
-        buffers.back().element = new VB_data({buffer, size});
+    void addBuffer(vector<_Buffer_t> const& buffer) {
+        addBuffer(buffer.data(), buffer.size()*sizeof(_Buffer_t));
+    }
+    template <typename _Buffer_t>
+    void addEleBuf(_Buffer_t *buffer, unsigned int size) {
+        buffers.back().element = new VB_data({(void*)buffer, size});
+    }
+    template <typename _Buffer_t>
+    void addEleBuf(vector<_Buffer_t> const& buffer) {
+        addEleBuf(buffer.data(), buffer.size()*sizeof(_Buffer_t));
     }
 private:
-    short readNum(string &str) {
-        short num = 0, i;
+    unsigned short readNum(string &str) {
+        unsigned short num = 0, i;
         for(i=0; i<str.size(); i++) {
             if(isdigit(str[i])) { num = num*10 + str[i]-'0'; }
             else break;
@@ -79,27 +93,27 @@ private:
         str = str.substr(i);
         return num;
     }
-    void _addAttrib(short size, GLenum type, short divisor) {
-        buffers.back().attribs.push_back({size, type, divisor});
+    void _addAttrib(unsigned short size, GLenum type, unsigned short divisor, unsigned short buffId) {
+        buffers.back().buffs[buffId].attribs.push_back({size, type, divisor});
     }
 public:
     template <typename ..._Args>
-    void addAttrib(string str, _Args... args) { bind();
+    void addAttrib(string str, _Args... args) {
         string _str_cpy = str;
-        short num = readNum(str);
+        unsigned short num = readNum(str);
         if(!num) { num = 1; }
-        GLenum type; short size = 0;
+        GLenum type; unsigned short size = 0;
         if(str.substr(0,3) == "vec" || str.substr(0,3) == "col") {
             size = readNum(str = str.substr(3));
         } else if(str.substr(0,3) == "mat") {
             size = readNum(str = str.substr(3));
-            short size2 = size;
+            unsigned short size2 = size;
             if(str[0] == 'x') { size2 = readNum(str = str.substr(1)); }
             num *= size2;
         } else {
             size = 1;
         }
-        short typelen = 0;
+        unsigned short typelen = 0;
         if(str.substr(0,4) == "bool"  ) { type = GL_BOOL        ; typelen = 4; } else 
         if(str.substr(0,3) == "int"   ) { type = GL_INT         ; typelen = 3; } else 
         if(str.substr(0,4) == "uint"  ) { type = GL_UNSIGNED_INT; typelen = 4; } else 
@@ -114,51 +128,59 @@ public:
             default: std::cerr << "VertexArray::ERROR:: Unknown type: " << str << std::endl; exit(-1);
         }
         str = str.substr(typelen);
-        short divisor = readNum(str);
+        unsigned short divisor = readNum(str);
         if(str.size()) { std::cerr << "VertexArray::ERROR:: Invalid attribute string: " << _str_cpy.c_str() << std::endl; exit(-1); }
         for(int i=0; i<num; i++) {
-            _addAttrib(size, type, divisor);
+            _addAttrib(size, type, divisor, _buffId++);
         }
         addAttrib(args...);
     }
-    void addAttrib() {
-        buffers.push_back(Buffer());
-    }
+    void addAttrib() { }
     void finish() { bind();
         buffers.pop_back();
-        attribIndex = 0;
-        for(Buffer &buffer : buffers) {
+        unsigned int attribIndex = 0;
+        for(auto const&buffer : buffers) {
             VertexBuffer VBO; VBOs.push_back(VBO);
-            if(!buffer.buffer) { std::cerr << "Error: No buffer data" << std::endl; exit(-1); }
+            unsigned int size = 0, i=0;
+            GLintptr buffOffsets[buffer.buffs.size()];
+            for(auto const&buff : buffer.buffs) {
+                buffOffsets[i] = size;
+                size += buff.size;
+                i++;
+            }
+            if(!size) { std::cerr << "Error: No buffer data" << std::endl; exit(-1); }
             glBindBuffer(GL_ARRAY_BUFFER, VBO);
             if(buffer.element) {
                 VertexBuffer EBO; VBOs.push_back(EBO);
                 glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
                 glBufferData(GL_ELEMENT_ARRAY_BUFFER, buffer.element->size, buffer.element->data, GL_STATIC_DRAW);
             }
-            glBufferData(GL_ARRAY_BUFFER, buffer.buffer->size, buffer.buffer->data, GL_STATIC_DRAW);
-            unsigned int attLength = 0, i=0;
-            unsigned int attLengths[buffer.attribs.size()];
-            for(Attribute &attrib : buffer.attribs) {
-                attLength += (attLengths[i++] = attrib.size * size_of(attrib.type));
-            } i = 0;
-            GLintptr offset = 0;
-            for(Attribute &attrib : buffer.attribs) {
-                glEnableVertexAttribArray(attribIndex);
-                glVertexAttribPointer(attribIndex, attrib.size, attrib.type, GL_FALSE, attLength, (void*)offset);
-                glVertexAttribDivisor(attribIndex, attrib.divisor);
-                offset += attLengths[i++];
-                attribIndex++;
+            glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_STATIC_DRAW);
+            i = 0;
+            for(auto const&buff : buffer.buffs) {
+                glBufferSubData(GL_ARRAY_BUFFER, buffOffsets[i], buff.size, buff.data);
+                i++;
+                unsigned int attLength = 0, j = 0;
+                GLintptr attOffsets[buff.attribs.size()];
+                for(Attribute const&attrib : buff.attribs) {
+                    attLength += attrib.size * size_of(attrib.type);
+                    attOffsets[i] = attLength;
+                    j++;
+                } j = 0;
+                for(Attribute const&attrib : buff.attribs) {
+                    glEnableVertexAttribArray(attribIndex);
+                    glVertexAttribPointer(attribIndex, attrib.size, attrib.type, GL_FALSE, attLength, (void*)(attOffsets[j]+buffOffsets[i]));
+                    glVertexAttribDivisor(attribIndex, attrib.divisor);
+                    attribIndex++;
+                    j++;
+                }
             }
         }
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
         unbind();
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         for(Buffer &buffer : buffers) {
-            delete buffer.buffer;
-            if(buffer.element) {
-                delete buffer.element;
-            }
+            if(buffer.element) { delete buffer.element; }
         }
         buffers.clear();
     }
