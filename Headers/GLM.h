@@ -5,7 +5,7 @@
 #include "GLM/gtc/type_ptr.hpp"
 #include <string.h>
 namespace glm {
-    typedef float real;
+    using real = float;
     #include "glm_typedef.h"
     constexpr real PI = 3.14159265358979323846f;
     constexpr real sqrt2 = 1.41421356237309504880f;

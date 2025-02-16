@@ -76,9 +76,11 @@ int main() { initGLFW(4, 6);
         glm::vec3(-1.3f,  1.0f,   1.5f),
     }); unsigned short cubeamount = positions.size();
     std::vector<float> sizes(cubeamount);
-    for(int i=0; i<cubeamount; i++) { sizes[i] = Rand::random(0.2f, 0.4f); }
+    for(int i=0; i<cubeamount; i++) {
+        sizes[i] = Rand::random(0.2f, 0.4f);
+    }
 
-    std::vector<glm::vec3> cubeVertices({
+    std::vector<glm::vec3> cubePositions({
         glm::vec3( 1.0f, 1.0f, 1.0f),
         glm::vec3(-1.0f, 1.0f, 1.0f),
         glm::vec3( 1.0f,-1.0f, 1.0f),
@@ -100,9 +102,16 @@ int main() { initGLFW(4, 6);
         glm::vec3(0.5f, 0.5f, 0.5f),
     });
     VertexArray VAO;
-    //*
-    VAO(8, indices) << cubeVertices << "vec3" << cubeColors << "col3";
-    VAO(cubeamount) << positions << "vec3-1" << sizes << "float-1";//*/
+    VAO.addBuffer(cubePositions);
+    VAO.addBuffer(cubeColors);
+    VAO.addEleBuf(indices);
+    VAO.addAttrib("vec3f");
+    VAO.addAttrib("col3f");
+    VAO.addBuffer(positions);
+    VAO.addAttrib("vec3f1");
+    VAO.addBuffer(sizes);
+    VAO.addAttrib("float1");
+    VAO.finish();
 
     while (!glfwWindowShouldClose(window)) {
         window.newFrame();

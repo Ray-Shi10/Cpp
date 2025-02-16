@@ -35,7 +35,7 @@ public:
     }
     return_type apply(__Args... args) const {
         if(!func) {
-            std::cerr << "Function is not callable" << std::endl;
+            std::error << "Function is not callable\n";
             return return_type();
         } else {
             return func(args...);
@@ -46,7 +46,7 @@ public:
     }
     return_type apply(tuple_type args) const {
         if(!func) {
-            std::cerr << "Function is not callable" << std::endl;
+            std::error << "Function is not callable" << std::endl;
             return return_type();
         } else {
             return std::apply(func, args);
@@ -100,6 +100,6 @@ template <typename _Func>
 using function_t = typename _function_tmp<_Func>::type;
 
 template <typename _Func>
-auto function(_Func f) { return function_t<_Func>(f); }
+auto make_function(_Func f) { return function_t<_Func>(f); }
 
 #endif
