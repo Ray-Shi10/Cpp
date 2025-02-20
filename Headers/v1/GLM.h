@@ -7,10 +7,25 @@
 namespace glm {
     using real = float;
     #include "glm_typedef.h"
-    constexpr real PI = 3.14159265358979323846f;
-    constexpr real sqrt2 = 1.41421356237309504880f;
-    constexpr real sqrt3 = 1.73205080756887729352f;
-    constexpr real sqrt5 = 2.23606797749978969640f;
+    constexpr real PI = pi<real>();
+    constexpr real sqrt2 = root_two<real>();
+    constexpr real sqrt3 = root_three<real>();
+    constexpr real sqrt5 = root_five<real>();
+	template<typename genType>
+	GLM_FUNC_QUALIFIER GLM_CONSTEXPR genType cube_root_two() {
+		return genType(1.259921049894873164767210607278228350570251464701507980081975112);
+	}
+    template<typename genType>
+    GLM_FUNC_QUALIFIER GLM_CONSTEXPR genType cube_root_three() {
+        return genType(1.442249570307408382321638310780109588391869253499350577546416146);
+    }
+    template<typename genType>
+    GLM_FUNC_QUALIFIER GLM_CONSTEXPR genType cube_root_five() {
+        return genType(1.709975946676696989353108872543860673759634721737781773993428073);
+    }
+    constexpr real cbrt2 = cube_root_two<real>();
+    constexpr real cbrt3 = cube_root_three<real>();
+    constexpr real cbrt5 = cube_root_five<real>();
 
     template <int n, typename T, qualifier Q=qualifier::defaultp>
     GLM_FUNC_QUALIFIER std::string toString(vec<n, T, Q> const& v) {

@@ -8,6 +8,8 @@
 #include <GLFW/glfw3.h>
 #include <GLM.h>
 
+#define DEBUG_LOG_VALUE(value, connect) #value << connect << value
+
 namespace std {
     static void setColor(ostream &stream, int r, int g, int b) { stream << "\033[38;2;" << r << ";" << g << ";" << b << "m"; }
     static void setColor(ostream &stream, int gray) { stream << "\033[38;2;" << gray << ";" << gray << ";" << gray << "m"; }

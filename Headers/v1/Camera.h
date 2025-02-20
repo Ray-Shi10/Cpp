@@ -41,5 +41,11 @@ public:
         if(dir.z >=  glm::PI  ) dir.z -=  glm::PI * 2;
         if(dir.z <= -glm::PI  ) dir.z +=  glm::PI * 2;
     }
+    Camera& operator=(Camera const& c) {
+        pos = c.pos; dir = c.dir; view = c.view;
+        sens_move = c.sens_move; sens_turn = c.sens_turn; sens_zoom = c.sens_zoom;
+        znear = c.znear; zfar = c.zfar;
+        return *this;
+    }
 };
 #endif // _CAMERA_H_

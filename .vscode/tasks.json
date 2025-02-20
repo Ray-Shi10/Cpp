@@ -8,9 +8,9 @@
 			"args": [
 				"-fdiagnostics-color=always",
 				//"-fdump-tree-all",
-				"-g",//*
+				"-g",/*
 				"${file}",/*/
-				"C:/Cpp/Cpp/opengl/test7.cpp",//*/
+				"C:/Cpp/Cpp/opengl/test9.cpp",//*/
 				"-o",
 				"${fileDirname}\\${fileBasenameNoExtension}.exe",
 				"-IC:/tools/msys64/ucrt64/include",

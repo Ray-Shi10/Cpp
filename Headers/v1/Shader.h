@@ -46,33 +46,35 @@ public:
     Shader(vector<shaderID> shaders) { link(shaders); }
     void use() const { glUseProgram(ID); } void unuse() const { glUseProgram(0); }
     GLint getUniformLocation(const char* name) const { return glGetUniformLocation(ID, name); }
-    void set(const char* name, int value) const { glUniform1i(getUniformLocation(name), (int)value); }
-    template <glm::qualifier Q=glm::qualifier::defaultp>
-    void set(const char* name, glm::vec<1, float, Q> const& value) const {
-        glUniform1fv(getUniformLocation(name), 1, value_ptr(value));
+    template <typename T>
+    void set(const char* name, T value) const {
+        set(name, (int)value);
     }
-    template <glm::qualifier Q=glm::qualifier::defaultp>
-    void set(const char* name, glm::vec<2, float, Q> const& value) const {
+    void set(const char* name, int value) const {
+        glUniform1i(getUniformLocation(name), value);
+    }
+    void set(const char* name, bool value) const {
+        glUniform1i(getUniformLocation(name), (int)value);
+    }
+    void set(const char* name, float value) const {
+        glUniform1f(getUniformLocation(name), value);
+    }
+    void set(const char* name, glm::vec2 const& value) const {
+        glUniform2fv(getUniformLocation(name), 1, value_ptr(value));
+    }
+    void set(const char* name, glm::vec3 const& value) const {
         glUniform3fv(getUniformLocation(name), 1, value_ptr(value));
     }
-    template <glm::qualifier Q=glm::qualifier::defaultp>
-    void set(const char* name, glm::vec<3, float, Q> const& value) const {
-        glUniform3fv(getUniformLocation(name), 1, value_ptr(value));
+    void set(const char* name, glm::vec4 const& value) const {
+        glUniform4fv(getUniformLocation(name), 1, value_ptr(value));
     }
-    template <glm::qualifier Q=glm::qualifier::defaultp>
-    void set(const char* name, glm::vec<4, float, Q> const& value) const {
-        glUniform3fv(getUniformLocation(name), 1, value_ptr(value));
-    }
-    template <glm::qualifier Q=glm::qualifier::defaultp>
-    void set(const char* name, glm::mat<2, 2, float, Q> const& value) const {
+    void set(const char* name, glm::mat2 const& value) const {
         glUniformMatrix2fv(getUniformLocation(name), 1, GL_FALSE, value_ptr(value));
     }
-    template <glm::qualifier Q=glm::qualifier::defaultp>
-    void set(const char* name, glm::mat<3, 3, float, Q> const& value) const {
+    void set(const char* name, glm::mat3 const& value) const {
         glUniformMatrix3fv(getUniformLocation(name), 1, GL_FALSE, value_ptr(value));
     }
-    template <glm::qualifier Q=glm::qualifier::defaultp>
-    void set(const char* name, glm::mat<4, 4, float, Q> const& value) const {
+    void set(const char* name, glm::mat4 const& value) const {
         glUniformMatrix4fv(getUniformLocation(name), 1, GL_FALSE, value_ptr(value));
     }
 private:

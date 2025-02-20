@@ -5,12 +5,43 @@
 #include <Window.h>
 #include <Function.h>
 #include <Random.h>
-//#include <VertexArray.h>
+#include <FrameBuffer.h>
 
-int main() { init(4, 6); Shader::logMaxAttribute();
+int main() { init(4, 6); Shader::logMaxAttribute(); FrameBuffer::init();
     Window window("OpenGL 3D");
-    Camera camera(glm::vec3(0.0f, 5.0f, 0.0f), glm::vec3(), glm::vec3(), 
+    FrameBuffer FBO(
+        "vec4 getColor(vec4 color) {\n"
+            "const vec2 offset = pixelSize;\n"
+            "const vec2 offsets[9] = vec2[](\n"
+                "vec2(-offset.x,  offset.y), // 左上\n"
+                "vec2( 0.0f    ,  offset.y), // 正上\n"
+                "vec2( offset.x,  offset.y), // 右上\n"
+                "vec2(-offset.x,  0.0f    ), // 正左\n"
+                "vec2( 0.0f    ,  0.0f    ), // 正中\n"
+                "vec2( offset.x,  0.0f    ), // 正右\n"
+                "vec2(-offset.x, -offset.y), // 左下\n"
+                "vec2( 0.0f    , -offset.y), // 正下\n"
+                "vec2( offset.x, -offset.y)  // 右下\n"
+            ");\n"
+            "float kernel[9] = float[](\n"
+                "-1.0f, -1.0f, -1.0f, \n"
+                "-1.0f,  9.0f, -1.0f, \n"
+                "-1.0f, -1.0f, -1.0f  \n"
+            ");\n"
+            "vec4 sampleTex[9];\n"
+            "for(int i = 0; i < 9; i++) {\n"
+                "sampleTex[i] = texture(screenTexture, texCoord + offsets[i]);\n"
+            "}\n"
+            "vec4 col = vec4(0.0);\n"
+            "for(int i = 0; i < 9; i++) {\n"
+                "col += sampleTex[i] * kernel[i];\n"
+            "}\n"
+            "return col;\n"
+        "}\n"
+    ), FBO2; GLushort type=0;
+    Camera camera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-glm::PI/2, 0.0f, 0.0f), glm::vec3(), 
                   0.01f, 1000.0f, 5.0f, 0.005f, 0.0f);
+    const Camera startCamera = camera;
     glfwSetWindowPos(window, 1500, 1000);
     float aspect = glm::sqrt2;
     window.onSize = [&](GLFWwindow*, int width, int height) {
@@ -18,6 +49,7 @@ int main() { init(4, 6); Shader::logMaxAttribute();
         int size = std::max<int>(width/aspect, height);
         camera.view = glm::vec3(size*aspect, size, size);
         glViewport(width/2-size*aspect/2, height/2-size/2, size*aspect, size);
+        FBO.resize(width, height); FBO2.resize(width, height);
     }; glfwSetWindowSize(window, 800*aspect, 800);
     window.onCursorMove = [&](GLFWwindow*, double xpos, double ypos) {
         window.getCursorMoveEvent(xpos, ypos);
@@ -53,14 +85,14 @@ int main() { init(4, 6); Shader::logMaxAttribute();
         "in vs2gs { uint blockType; } attribs[];\n"
         "layout (triangle_strip, max_vertices = 14) out;\n"
         "out vec3 fragColor;\n"
-        "uniform mat4 model;\n"
+        //"uniform mat4 model;\n"
         "uniform mat4 camTrans;\n"
         "void addPoint(vec3 offset, vec3 color) {\n"
             "gl_Position = camTrans * ( gl_in[0].gl_Position + vec4(offset/2, 0.0f) );\n"
             "fragColor = color; EmitVertex();\n"
         "}\n"
         "void main() {\n"
-            "//if(pos.z > 1.0f) return;\n"
+            //"if(pos.z > 1.0f) return;\n"
             "if(attribs[0].blockType == 0U) return;\n"
              // 0 1 2 3 7 1 5 0 4 2 6 7 4 5
             "addPoint(vec3( 1.0f, 1.0f, 1.0f), vec3(1.0f, 1.0f, 1.0f));\n" // 0
@@ -144,26 +176,35 @@ int main() { init(4, 6); Shader::logMaxAttribute();
 
         {
             glm::vec3 move(0.0f);
-            if(window.keyPress(GLFW_KEY_R)) { camera.pos = camera.dir = glm::vec3(0.0f); }
-            if(window.keyPress(GLFW_KEY_W)) { move += glm::vec3( 0.0f, 0.0f,-1.0f); }
-            if(window.keyPress(GLFW_KEY_S)) { move += glm::vec3( 0.0f, 0.0f, 1.0f); }
-            if(window.keyPress(GLFW_KEY_A)) { move += glm::vec3(-1.0f, 0.0f, 0.0f); }
-            if(window.keyPress(GLFW_KEY_D)) { move += glm::vec3( 1.0f, 0.0f, 0.0f); }
-            if(window.keyPress(GLFW_KEY_SPACE)) { move += glm::vec3( 0.0f, 1.0f, 0.0f); }
-            if(window.keyPress(GLFW_KEY_LEFT_SHIFT)) { move += glm::vec3( 0.0f,-1.0f, 0.0f); }
+            if(window.keyPressed(GLFW_KEY_R)) { camera = startCamera; }
+            if(window.keyPressed(GLFW_KEY_W)) { move += glm::vec3( 0.0f, 0.0f,-1.0f); }
+            if(window.keyPressed(GLFW_KEY_S)) { move += glm::vec3( 0.0f, 0.0f, 1.0f); }
+            if(window.keyPressed(GLFW_KEY_A)) { move += glm::vec3(-1.0f, 0.0f, 0.0f); }
+            if(window.keyPressed(GLFW_KEY_D)) { move += glm::vec3( 1.0f, 0.0f, 0.0f); }
+            if(window.keyPressed(GLFW_KEY_SPACE)) { move += glm::vec3( 0.0f, 1.0f, 0.0f); }
+            if(window.keyPressed(GLFW_KEY_LEFT_SHIFT)) { move += glm::vec3( 0.0f,-1.0f, 0.0f); }
+            if(window.keyPressed(GLFW_KEY_TAB)) { type = (type+1)%2; Sleep(300); std::out<<"type = "<<type<<"\n"; }
             camera.move(move, window.frame.dt);
         }
 
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); 
+        switch(type) {
+            case 0: FBO .use(); break;
+            case 1: FBO2.use(); break;
+        }
+        window.clear(glm::vec3(0.1f), 1.0f);
 
         shader1.use();
+            glEnable(GL_DEPTH_TEST);
             shader1.set("camTrans", camera.getMatrix());
-            shader1.set("model", glm::mat4(1.0f));
             glBindVertexArray(VAO);
             glDrawArrays(GL_POINTS, viewSize.y*viewSize.z+viewSize.z+1, viewSize.x*viewSize.y*viewSize.z-2*viewSize.y*viewSize.z-2*viewSize.z-2);
             glBindVertexArray(0);
         shader1.unuse();
+        
+        switch(type) {
+            case 0: FBO .draw(); break;
+            case 1: FBO2.draw(); break;
+        }
 
         glfwSwapBuffers(window); glfwPollEvents(); Sleep(15);
     }

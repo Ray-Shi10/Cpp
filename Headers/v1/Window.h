@@ -121,9 +121,17 @@ public:
     void newFrame(glm::real time=glfwGetTime()) {
         frame.dt = time - frame.lt; frame.lt = time;
     }
-    bool keyPress(int key) {
+    bool keyPressed(int key) const {
         return glfwGetKey(window.glfwWindow, key) == GLFW_PRESS;
     }
+    void clear(glm::vec4 color=glm::vec4(0,0,0,1), bool depth=true, bool stencil=false) {
+        glClearColor(color.r, color.g, color.b, color.a);
+        glClear((depth?GL_DEPTH_BUFFER_BIT:0) | (stencil?GL_STENCIL_BUFFER_BIT:0) | GL_COLOR_BUFFER_BIT);
+    }
+    void clear(glm::vec3 color, bool depth=true, bool stencil=false) { clear(glm::vec4(color, 1.0f), depth, stencil); }
+    void clear(glm::vec3 color, glm::real alpha, bool depth=true, bool stencil=false) { clear(glm::vec4(color, alpha), depth, stencil); }
+    void clear(glm::real gray, bool depth=true, bool stencil=false) { clear(glm::vec3(gray), depth, stencil); }
+    void clear(glm::real gray, glm::real alpha, bool depth=true, bool stencil=false) { clear(glm::vec4(glm::vec3(gray), alpha), depth, stencil); }
 
     void getFramebufferSizeEvent(int width, int height, bool apply=true) {
         window.width  = width;
