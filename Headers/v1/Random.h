@@ -2,12 +2,12 @@
 #define _RANDOM_H_
 #define _RANDOM_LEVEL_ 1
 
-#include <GLM.h>
+//#include <GLM.h>
 #include <random>
 #include <chrono>
 
 /*
-random() - glm::real between 0.0 and 1.0
+random() - float between 0.0 and 1.0
 random(max) - between 0.0 and max
 random(min, max) - between min and max
 */
@@ -69,21 +69,21 @@ namespace Rand {
             srand(seed);
         }
     #define _RAND_
-        glm::real random() {
-            return (glm::real)rand() / RAND_MAX;
+        float random() {
+            return (float)rand() / RAND_MAX;
         }
     #define _RAND_RUN_
         void run() { rand(); }
 #elif _RANDOM_LEVEL_ == 1
     std::mt19937_64 engine(std::chrono::high_resolution_clock::now().time_since_epoch().count());
     const unsigned long long int max = engine.max(), min = engine.min();
-    std::uniform_real_distribution<glm::real> dist(0.0f, 1.0f);
+    std::uniform_real_distribution<float> dist(0.0f, 1.0f);
     #define _SET_SEED_
         void setSeed(unsigned int seed) {
             engine.seed(seed);
         }
     #define _RAND_
-        glm::real random() {
+        float random() {
             return dist(engine);
         }
     #define _RAND_RUN_

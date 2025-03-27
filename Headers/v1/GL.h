@@ -166,7 +166,7 @@ size_t size_of(GLenum type, size_t _default = 0) {
     }
 }
 
-template <typename T> struct GLenumType { using type = T;        constexpr static GLenum value = 0                 ; constexpr static size_t size = sizeof(T);          };
+template <typename T> struct GLenumType { using type = void;     constexpr static GLenum value = 0                 ; constexpr static size_t size = 0;                  };
 template <> struct GLenumType<GLbyte>   { using type = GLbyte;   constexpr static GLenum value = GL_BYTE           ; constexpr static size_t size = sizeof(GLbyte);     };
 template <> struct GLenumType<GLubyte>  { using type = GLubyte;  constexpr static GLenum value = GL_UNSIGNED_BYTE  ; constexpr static size_t size = sizeof(GLubyte);    };
 template <> struct GLenumType<GLshort>  { using type = GLshort;  constexpr static GLenum value = GL_SHORT          ; constexpr static size_t size = sizeof(GLshort);    };

@@ -8,7 +8,7 @@
 			"args": [
 				"-fdiagnostics-color=always",
 				//"-fdump-tree-all",
-				"-g",/*
+				"-g",//*
 				"${file}",/*/
 				"C:/Cpp/Cpp/opengl/test9.cpp",//*/
 				"-o",
