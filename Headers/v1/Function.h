@@ -27,7 +27,7 @@ public:
     _function_base(pointer_type f) : func(f) {}
     template <typename _Func>
     _function_base(_Func f) {
-        static auto lam = (decltype(f))(f);
+        static auto lam = f;
         func = ([](__Args... _args) -> return_type { return static_cast<return_type>(lam(_args...)); });
     }
     return_type operator()(__Args... args) const {

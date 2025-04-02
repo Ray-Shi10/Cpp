@@ -43,12 +43,12 @@ private:
         }
     }
     static shaderID compile(shaderSource shaderCode, shaderID type) {
-        std::out << "Compiling shader of type " << getShaderTypeName(type) << "...";
+        std::out << "Compiling shader of type " << getShaderTypeName(type) << "...\r";
         //std::out << shaderCode << "\n";
         shaderID shader = glCreateShader(type);
         glShaderSource(shader, 1, &(shaderCode), NULL);
         glCompileShader(shader); checkError(shader, type);
-        std::succ << "\rCompile shader of type " << getShaderTypeName(type) << " successfully\n";
+        std::succ << "Compiled shader of type " << getShaderTypeName(type) << " successfully\n";
         return shader;
     }
     void link(vector<shaderID> const&shaders) {
@@ -69,6 +69,7 @@ public:
     shaderID ID;
     template <typename ...Args>
     ShaderProgram(shaderSource vShaderCode, Args ...otherCodes) {
+        //std::out << "Creating shader program: \n";
         vector<shaderID> shaders(1, compile(vShaderCode, GL_VERTEX_SHADER));
         _Shader(shaders, otherCodes...); link(shaders);
         std::succ << "Shader program created successfully\n";

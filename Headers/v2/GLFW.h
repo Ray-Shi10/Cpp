@@ -6,29 +6,32 @@
 #include "Colorful.h"
 
 void initGLFW(short major, short minor) {
-    if(!glfwInit()) {
-        std::error << "Failed to initialize GLFW" << std::endl;
-        exit(-1);
+    char version[16];
+    sprintf(version, "GLFW-v%d.%d", major, minor);
+    std::out << "Initializing " << version << " ...\r";
+    if(/**/glfwInit()/*/1/**/) {
+        std::succ << "Initialized " << version << " successfully" << "\n";
     } else {
-        std::succ << "Initialized GLFW successfully" << std::endl;
+        std::error << "Failed to initialize " << version << "\n";
+        exit(-1);
     }
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, major);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, minor);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    //glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
-    //return true;
 }
 
 GLFWwindow* glfwCreateWindow(int width, int height, const char* title, bool context=true) {
     GLFWwindow *window = glfwCreateWindow(width, height, title, NULL, NULL);
-    if (window == NULL) {
-        std::error << "Failed to create GLFW window\n";
-        glfwTerminate();
-        exit(-1);
-    } else {
+    std::out << "Creating GLFW window...\r";
+    if (window) {
         std::succ << "Created GLFW window successfully\n";
+    } else {
+        std::error << "Failed to create GLFW window\n";
+        glfwTerminate(); exit(-1);
     }
     if(context) {
         glfwMakeContextCurrent(window);

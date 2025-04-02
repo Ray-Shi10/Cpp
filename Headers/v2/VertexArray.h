@@ -23,6 +23,8 @@ public:
     bool binded = 0;
     vector<BufferID> buffers;
     GLuint attribIndex = 0;
+    GLenum eboType = 0;
+    static VertexArray *getBound() { return bound; }
      VertexArray() { glGenVertexArrays   (1, &id); }
     ~VertexArray() { glDeleteVertexArrays(1, &id);
         for(auto const& buffer : buffers) {
@@ -31,11 +33,11 @@ public:
     }
     void bind() {
         if(bound != this) {
-            if(bound) {
+            if(bound)
                 bound -> binded = false;
-            }
             binded = true;
             glBindVertexArray(id);
+            nowEBOType = eboType;
             bound = this;
         }
     }
@@ -49,20 +51,62 @@ public:
     static void clear() {
         if(bound) bound -> unbind();
     }
-    template <typename T>
-    void operator()(vector<T> const&data, glm::length_t n=1, glm::length_t m=1) {
+private:
+    template <typename buffer_t, size_t index=buffer_t::packLen, size_t offset=buffer_t::packSize>
+    static void _setVertAttrib(buffer_t const&buffer, GLuint divisor, GLuint &attribIndex) {
+        using type = typename buffer_t::kthType<index>::type;
+        using typeInfoGLM = glm::solveType<type>;
+        using typeInfoGL  = GLTypeInfo<typename typeInfoGLM::type>;
+        for(glm::length_t i=0; i<typeInfoGLM::m; i++) {
+            glVertexAttribPointer(attribIndex, typeInfoGLM::n, typeInfoGL::value, GL_FALSE, buffer_t::packSize, (void const*)offset);
+            glVertexAttribDivisor(attribIndex, divisor);
+            glEnableVertexAttribArray(attribIndex);
+            attribIndex++;
+        }
+    }
+    template <typename buffer_t, size_t index=buffer_t::packLen, size_t offset=buffer_t::packSize>
+    struct setVertAttrib {
+        setVertAttrib(buffer_t const&buffer, GLuint divisor, GLuint &attribIndex) {
+            _setVertAttrib<buffer_t, index, offset>(buffer, divisor, attribIndex);
+            setVertAttrib<buffer_t, index-1, offset-sizeof(typename buffer_t::kthType<index>::type)>(buffer, divisor, attribIndex);
+        }
+    };
+    template <typename buffer_t, size_t offset>
+    struct setVertAttrib<buffer_t, 0, offset> {
+        setVertAttrib(buffer_t const&buffer, GLuint divisor, GLuint &attribIndex) {
+            _setVertAttrib<buffer_t, 0, offset>(buffer, divisor, attribIndex);
+        }
+    };
+public:
+    template <typename ...Args>
+    VertexArray &operator()(Buffer<Args...> const&data, GLuint divisor=0) {
+        using buffer_t = Buffer<Args...>;
         bind(); BufferID buffer;
         glGenBuffers(1, &buffer);
         glBindBuffer(GL_ARRAY_BUFFER, buffer);
-            glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(T), data.data(), GL_STATIC_DRAW);
-            for(glm::length_t i=0; i<m; i++) {
-                glVertexAttribPointer(attribIndex, n, GL_FLOAT, GL_FALSE, n * sizeof(T), (void*)(i * n * sizeof(T)));
-                glEnableVertexAttribArray(attribIndex++);
-            }
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBufferData(GL_ARRAY_BUFFER, data.sizeByte(), data.dataPtr(), GL_STATIC_DRAW);
+            setVertAttrib<buffer_t, buffer_t::packLen-1, (buffer_t::packSize)>(data, divisor, attribIndex);
+        //glBindBuffer(GL_ARRAY_BUFFER, 0);
         buffers.push_back(buffer);
+        return *this;
     }
+    template <typename T>
+    VertexArray &operator[](Buffer<T> const&data) {
+        eboType = GLTypeInfo<T>::value;
+        bind(); BufferID buffer;
+        glGenBuffers(1, &buffer);
+        //element buffer
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, data.sizeByte(), data.dataPtr(), GL_STATIC_DRAW);
+        return *this;
+    }
+    static GLenum nowEBOType;
 };
 VertexArray *VertexArray::bound = nullptr;
+GLenum VertexArray::nowEBOType = 0;
+#undef glDrawElements
+inline void glDrawElements(GLenum mode, GLsizei count, void *indices=0) {
+    glad_glDrawElements(mode, count, VertexArray::nowEBOType, indices);
+}
 
 #endif // _VERTEX_ARRAY_H_

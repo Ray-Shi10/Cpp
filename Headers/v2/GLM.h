@@ -208,5 +208,11 @@ namespace glm {
         Result[3][2] = dot(f, eye);
         return Result;
     }//*/
+
+    template <typename T> class solveType { public: using type = T; constexpr static int n = 1, m = 1, size=n*m; constexpr static qualifier q = qualifier::defaultp; };
+    template <typename T, glm::length_t N, glm::qualifier Q>
+    class solveType<vec<N, T, Q>> { public: using type = T; constexpr static int n = N, m = 1, size=n*m; constexpr static qualifier q = Q; };
+    template <typename T, glm::length_t N, glm::length_t M, glm::qualifier Q>
+    class solveType<mat<N, M, T, Q>> { public: using type = T; constexpr static int n = N, m = M, size=n*m; constexpr static qualifier q = Q; };
 }
 #endif // _MY_GLM_H_

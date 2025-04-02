@@ -7,17 +7,27 @@ public:
     static Texture *bound;
     using TextureID = GLuint;
     TextureID id;
-    Texture() {
-        glGenTextures(1, &id);
-    }
-    ~Texture() {
-        glDeleteTextures(1, &id);
-    }
+    bool binded = 0;
+     Texture() { glGenTextures   (1, &id); }
+    ~Texture() { glDeleteTextures(1, &id); }
     void bind() {
-        glBindTexture(GL_TEXTURE_2D, id);
+        if(bound != this) {
+            if(bound)
+                bound -> binded = false;
+            binded = true;
+            glBindTexture(GL_TEXTURE_2D, id);
+            bound = this;
+        }
     }
     void unbind() {
-        glBindTexture(GL_TEXTURE_2D, 0);
+        if(bound == this) {
+            bound = nullptr;
+            binded = false;
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
+    }
+    static void clear() {
+        if(bound) bound -> unbind();
     }
 };
 
