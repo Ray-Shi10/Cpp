@@ -1,6 +1,7 @@
 #ifndef _MY_GLFW_H_
 #define _MY_GLFW_H_
 
+#include <GLAD/glad.c>
 #include <GLFW/glfw3.h>
 //#include <GLFW/glfw3native.h>
 #include "Colorful.h"
@@ -18,7 +19,7 @@ void initGLFW(short major, short minor) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, major);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, minor);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    //glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif

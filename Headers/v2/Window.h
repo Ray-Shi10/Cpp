@@ -8,7 +8,7 @@ class Window {
 public:
     struct WindowData {
         GLFWwindow *glfwWindow = nullptr;
-        const char *title;
+        std::string title;
         glm::uvec2 size;
         glm::vec2 pos;
         bool active;
@@ -33,12 +33,12 @@ public:
         window({nullptr, title, size, pos, active}), 
         frame({0, glm::real(glfwGetTime())}), 
         mouse({GLFW_CURSOR_NORMAL, true, glm::vec2(0), glm::vec2(0), glm::vec2(0), glm::vec2(0)}) {
-        window.glfwWindow = glfwCreateWindow(window.size.x, window.size.y, window.title, nullptr, nullptr);
+        window.glfwWindow = glfwCreateWindow(window.size.x, window.size.y, title, nullptr, nullptr);
         if(active) {
             glfwMakeContextCurrent(window.glfwWindow);
             glfwSetWindowPos(window.glfwWindow, window.pos.x, window.pos.y);
             if(__first__) {
-                initGLAD(); __first__ = false;
+                initGLAD(); __first__ = false; initError();
                 glfwSetErrorCallback([](int error, const char* description) {
                     std::error << "GLFW-ERROR(" << error << "):  " << description << std::endl;
                 });

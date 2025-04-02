@@ -1,10 +1,10 @@
 #ifndef _BASE_H_
 #define _BASE_H_
 
-#include <GLAD/glad.c>
 #include "GLFW.h"
 #include "GLM.h"
 #include "Colorful.h"
+#include "Error.h"
 //#include "TypeTraits.h"
 
 void initConsole() { HANDLE stdHandle; DWORD dwMode;
