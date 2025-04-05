@@ -1,6 +1,6 @@
 #include <vector>
 #include <v2/Shader.h>
-//#include <v2/Canvas.h>
+#include <v2/Canvas.h>
 //#include <v2/Texture.h>
 //#include <v2/Image.h>
 #include <v2/Window.h>
@@ -34,6 +34,24 @@ int main() {
     glfwCreateWindow(800, 600, "Test2", nullptr, window.window.glfwWindow);/**/
     Camera camera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(800,600,1000), 0.01f, 1000.0f, 3.0f, 0.005f, 0.0f);
     ShaderProgram shader(R"(
+        layout(location = 0) in vec3 color;
+        layout(location = 1) in vec3 position;
+        out vec3 vColor;
+        uniform mat4 model;
+        uniform mat4 view;
+        uniform mat4 projection;
+        void main() {
+            gl_Position = projection * view * model * vec4(position, 1.0f);
+            vColor = color;
+        }
+    )", R"(
+        in vec3 vColor;
+        out vec4 FragColor;
+        void main() {
+            FragColor = vec4(vColor, 1.0);
+        }
+    )");
+    ShaderProgram shader2(R"(
         layout(location = 0) in vec3 color;
         layout(location = 1) in vec3 position;
         out vec3 vColor;

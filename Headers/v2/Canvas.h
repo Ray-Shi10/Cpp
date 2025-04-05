@@ -3,9 +3,11 @@
 
 #include "GLM.h"
 
-class Canvas {
+class Canvas_base {
 public:
     glm::ivec2 size, pos;
+    glm::vec2 scale, offset;
+    
 };
 
 #endif // _CANVAS_H_

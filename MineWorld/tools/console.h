@@ -42,6 +42,11 @@ namespace tools {
             };
         }
     }
+    namespace ____tmp {
+        class __init_console_color {
+        public:
+        }
+    }
 }
 
 #endif // _CONSOLE_H_

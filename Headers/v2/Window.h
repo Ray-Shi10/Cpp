@@ -65,6 +65,7 @@ public:
             glfwWaitEvents();
         }
     }
+    void active(bool active) { window.active; }
 };
 bool Window::__first__ = true;
 
