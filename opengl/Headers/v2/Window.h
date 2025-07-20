@@ -11,7 +11,7 @@ public:
         std::string title;
         glm::uvec2 size;
         glm::vec2 pos;
-        bool active;
+        bool active, focus;
         glm::real aspect() { return glm::real(size.x) / glm::real(size.y); }
     } window;
     struct FrameData {
@@ -34,14 +34,13 @@ public:
         frame({0, glm::real(glfwGetTime())}), 
         mouse({GLFW_CURSOR_NORMAL, true, glm::vec2(0), glm::vec2(0), glm::vec2(0), glm::vec2(0)}) {
         window.glfwWindow = glfwCreateWindow(window.size.x, window.size.y, title, nullptr, nullptr);
+        glfwSetWindowUserPointer(window.glfwWindow, this);
         if(active) {
             glfwMakeContextCurrent(window.glfwWindow);
+            glfwFocusWindow(window.glfwWindow);
             glfwSetWindowPos(window.glfwWindow, window.pos.x, window.pos.y);
             if(__first__) {
                 initGLAD(); __first__ = false; initError();
-                glfwSetErrorCallback([](int error, const char* description) {
-                    std::error << "GLFW-ERROR(" << error << "):  " << description << std::endl;
-                });
             }
         }//glfwGetCurrentContext();
     }
@@ -58,14 +57,29 @@ public:
     void clearStencil() { glClear(GL_STENCIL_BUFFER_BIT); }
     bool keyPressed(int key) { return glfwGetKey(window.glfwWindow, key) == GLFW_PRESS; }
     void setCursorMode(int mode) { mouse.mode = mode; }
-    void applyCursorMode() { if(window.active) { glfwSetInputMode(window.glfwWindow, GLFW_CURSOR, mouse.mode); } else { glfwSetInputMode(window.glfwWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL); } }
+    void applyCursorMode() {
+        if(window.active) {
+            glfwSetInputMode(window.glfwWindow, GLFW_CURSOR, mouse.mode);
+        } else {
+            glfwSetInputMode(window.glfwWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
+    }
     void newFrame(float newFrame = glfwGetTime()) {
         frame.lt=frame.nt; frame.nt=newFrame; frame.dt = frame.nt - frame.lt;
         while(!window.active && !shouldClose()) {
             glfwWaitEvents();
         }
+        glfwPollEvents();
     }
-    void active(bool active) { window.active; }
+    void focus() {
+        currentContext().window.focus = false;
+        window.focus = true; glfwFocusWindow(window.glfwWindow);
+    }
+    void active() { window.active = true; }
+    void inactive() { window.active = false; }
+    static Window &currentContext() { return *(Window*)(glfwGetWindowUserPointer(glfwGetCurrentContext())); }
+    static Window &currentContext(GLFWwindow *window) { return *(Window*)(glfwGetWindowUserPointer(window)); }
+    static Window &currentContext(Window &newWindow) { return currentContext(newWindow.window.glfwWindow); }
 };
 bool Window::__first__ = true;
 

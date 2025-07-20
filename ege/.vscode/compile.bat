@@ -1,0 +1,1 @@
+C:\tools\msys64\mingw64\bin\g++.exe -fdiagnostics-color=always -g %1.cpp -o %1.exe -IC:\tools\ege\include -LC:\tools\ege\lib\mingw64\mingw-w64-gcc-8.1.0-x86_64 -lgraphics -lgdiplus -lgdi32 -luuid -lmsimg32 -limm32 -lole32 -loleaut32 -lwinmm

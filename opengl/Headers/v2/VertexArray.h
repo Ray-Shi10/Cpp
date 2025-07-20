@@ -64,7 +64,7 @@ private:
             attribIndex++;
         }
     }
-    template <typename buffer_t, size_t index=buffer_t::packLen, size_t offset=buffer_t::packSize>
+    template <typename buffer_t, size_t index=buffer_t::packLen-1, size_t offset=buffer_t::packSize>
     struct setVertAttrib {
         setVertAttrib(buffer_t const&buffer, GLuint divisor, GLuint &attribIndex) {
             _setVertAttrib<buffer_t, index, offset>(buffer, divisor, attribIndex);
@@ -85,7 +85,7 @@ public:
         glGenBuffers(1, &buffer);
         glBindBuffer(GL_ARRAY_BUFFER, buffer);
             glBufferData(GL_ARRAY_BUFFER, data.sizeByte(), data.dataPtr(), GL_STATIC_DRAW);
-            setVertAttrib<buffer_t, buffer_t::packLen-1, (buffer_t::packSize)>(data, divisor, attribIndex);
+            setVertAttrib<buffer_t>(data, divisor, attribIndex);
         //glBindBuffer(GL_ARRAY_BUFFER, 0);
         buffers.push_back(buffer);
         return *this;

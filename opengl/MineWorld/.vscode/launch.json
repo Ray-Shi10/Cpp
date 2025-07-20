@@ -6,9 +6,9 @@
             "request": "launch",
             "program": "${fileDirname}/${fileBasenameNoExtension}.exe",
             "args": [
-                "英语"
             ],
             "stopAtEntry": false,
+            //"cwd": "C:/tools/msys64/ucrt64/bin",
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,

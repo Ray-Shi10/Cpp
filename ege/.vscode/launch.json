@@ -4,8 +4,10 @@
             "name": "C/C++: g++.exe build and debug active file",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${fileDirname}\\${fileBasenameNoExtension}_.exe",
-            "args": [],
+            "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
+            "args": [
+                "${fileDirname}\\${fileBasenameNoExtension}.cpp"
+            ],
             "stopAtEntry": false,
             "cwd": "C:/tools/msys64/mingw64/bin",
             "environment": [],

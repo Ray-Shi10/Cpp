@@ -21,6 +21,16 @@ namespace std {
         operator ostream&() { return stream; } operator ostream const&() const { return stream; } operator bool() { return true; }
         //template <typename T> using _print_func = void(*)(T); template <typename T> operator _print_func<T>() { return [](T value){(*this)<<vaule;}; }
     } error(cerr, 200,0,0), warn(cerr, 200,64,32), succ(cout, 32,200,32), out(cout, 200);
+    #ifdef DEBUG
+        ostream &debug = cout;
+    #else
+        class tmp_debug_ostream {
+        public:
+            using _Self = tmp_debug_ostream;
+            template <typename T>
+            _Self &operator<<(T) { return *this; }
+        } debug;
+    #endif
 }
 
 #endif // _COLORFUL_H_

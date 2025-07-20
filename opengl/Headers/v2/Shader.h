@@ -50,7 +50,7 @@ private:
         code += std::to_string(GLVersion.major) + std::to_string(GLVersion.minor) + "0 core\n";
         code += shaderCode;
         const char *shaderCode2 = code.c_str();
-        glShaderSource(shader, 1, &(shaderCode2), NULL);
+        glShaderSource(shader, 1, &shaderCode2, NULL);
         glCompileShader(shader); checkError(shader, type);
         std::succ << "Compiled shader of type " << getShaderTypeName(type) << " successfully\n";
         return shader;

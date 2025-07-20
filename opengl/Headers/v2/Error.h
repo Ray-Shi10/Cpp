@@ -3,6 +3,23 @@
 
 #include "base.h"
 
+void _glCheckError(const char *file, int line) {
+    GLenum errorCode;
+    while ((errorCode = glGetError()) != GL_NO_ERROR) {
+        std::string error;
+        switch (errorCode) {
+            case GL_INVALID_ENUM:                  error = "INVALID_ENUM"; break;
+            case GL_INVALID_VALUE:                 error = "INVALID_VALUE"; break;
+            case GL_INVALID_OPERATION:             error = "INVALID_OPERATION"; break;
+            case GL_STACK_OVERFLOW:                error = "STACK_OVERFLOW"; break;
+            case GL_STACK_UNDERFLOW:               error = "STACK_UNDERFLOW"; break;
+            case GL_OUT_OF_MEMORY:                 error = "OUT_OF_MEMORY"; break;
+            case GL_INVALID_FRAMEBUFFER_OPERATION: error = "INVALID_FRAMEBUFFER_OPERATION"; break;
+        } std::cout << error << " | " << file << " (" << line << ")" << std::endl;
+    }
+}
+#define glCheckError() _glCheckError(__FILE__, __LINE__)
+
 void initError() {
     GLint flags; glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
     if(flags & GL_CONTEXT_FLAG_DEBUG_BIT) {
@@ -11,6 +28,7 @@ void initError() {
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         glGetError(); // clear error
         glDebugMessageControl(GL_DEBUG_SOURCE_API, GL_DEBUG_TYPE_ERROR, GL_DEBUG_SEVERITY_HIGH, 0, nullptr, GL_TRUE);
+        std::out << "Setting OpenGL debug callback\r";
         glDebugMessageCallback([](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam) {
             if(id == 131169 || id == 131185 || id == 131218 || id == 131204) return;
             std::error << "GL-ERROR(" << id << "): " <<  message << "\n";
@@ -46,11 +64,12 @@ void initError() {
                 default:                             std::error << "Unknown"; break;
             } std::error << "\n";
         }, nullptr);
+        std::succ << "Setting OpenGL debug callback successfully\n";
     } else {
         std::error << "OpenGL debug context not enabled\n";
     }
     glfwSetErrorCallback([](int error, const char* description) {
-        std::error << "GLFW-ERROR(" << error << "):  " << description << std::endl;
+        std::error << "GLFW-ERROR(" << error << "):  " << description << "\n";
     });
 }
 

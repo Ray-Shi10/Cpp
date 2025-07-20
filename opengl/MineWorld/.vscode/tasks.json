@@ -11,6 +11,15 @@
 				"-o", "${fileDirname}\\${fileBasenameNoExtension}.exe",
 				"-IC:\\tools\\msys64\\ucrt64\\include",
 				"-I${workspaceFolder}\\Headers",
+				"-llibglfw3",
+				"-luuid",
+				"-lmsimg32",
+				"-lgdi32",
+				"-limm32",
+				"-lole32",
+				"-loleaut32",
+				"-lwinmm",
+				"-lgdiplus",
 			],
 			"options": {
 				"cwd": "${workspaceFolder}"
