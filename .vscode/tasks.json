@@ -10,6 +10,7 @@
 				"${workspaceFolder}\\",/**/
 				"-o", "${fileDirname}\\${fileBasenameNoExtension}.exe",
 				"-IC:\\tools\\msys64\\ucrt64\\include",
+				"-I${workspaceFolder}\\eigen-3.4.0",
 				"-I${workspaceFolder}\\Headers",
 			],
 			"options": {
