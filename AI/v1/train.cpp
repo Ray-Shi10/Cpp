@@ -1,10 +1,12 @@
 #include <iostream>
 #include <Eigen/Dense>
+#include <graphics.h>
 using namespace Eigen;
 //#include <cmath>
 using namespace std;
 using uint = unsigned int;
 using usht = unsigned short;
+const float esp = 0.00001f;
 
 inline float random1() {
   return (float(rand())/RAND_MAX*2)-1;
@@ -18,6 +20,11 @@ inline auto square(T a) {
 }
 inline float clamp(float x, float min, float max) {
   return x<min ? min : x>max ? max : x;
+}
+inline float notZero(float x) {
+  static uint cnt = 0;
+  if(-esp < x && x < esp) cout << "save from dividing zero (" << ++cnt << ")\n";
+  return x > esp ? x : x < -esp ? x : x >= 0 ? esp : -esp;
 }
 
 /*
@@ -272,9 +279,9 @@ public:
   }
   AI() {
     for(int i=0; i<depth-1; i++) {
-      mats[i] = MatrixXf(layerSizes[i], layerSizes[i+1]);
-      for(uint j=0; j<layerSizes[i]; j++) {
-        for(uint k=0; k<layerSizes[i+1]; k++) {
+      mats[i] = MatrixXf(layerSizes[i+1], layerSizes[i]);
+      for(uint j=0; j<layerSizes[i+1]; j++) {
+        for(uint k=0; k<layerSizes[i]; k++) {
           mats[i](j, k) = random1() * 2;
         }
       }
@@ -284,7 +291,7 @@ public:
     MatrixXf layers[depth];
     layers[0] = in;
     for(int i = 1; i < depth; ++i) {
-      layers[i] = layers[i-1] * mats[i-1];
+      layers[i] = mats[i-1] * layers[i-1];
       for(int j = 0; j < layerSizes[i]; ++j) {
         layers[i](j, 0) = activeFunc(layers[i](j, 0));
       }
@@ -295,7 +302,7 @@ public:
     MatrixXf layers[depth];
     layers[0] = in;
     for(int i = 1; i < depth; ++i) {
-      layers[i] = layers[i-1] * mats[i-1];
+      layers[i] = mats[i-1] * layers[i-1];
       for(int j = 0; j < layerSizes[i]; ++j) {
         layers[i](j, 0) = activeFunc(layers[i](j, 0));
       }
@@ -314,19 +321,20 @@ public:
         answer(i, 0) = (i == maxId) ? 1.0f : 0.0f;
       }
     }
-    float deff = square(layers[depth-1]-answer).sum() / layerSizes[depth-1];
+    float deff = (layers[depth-1]-answer).squaredNorm() / 2;
     return deff;
   }
-  float train(float alpha = 0.0001) {
+  float train(float alpha = 0.00001) {
     MatrixXf layers[depth];
     // for(int i=0; i<depth; ++i) {
     //   layers[i] = MatrixXf(layerSizes[i], 1);
     // }
+    layers[0] = MatrixXf(layerSizes[0], 1);
     for(int i = 0; i < layerSizes[0]; ++i) {
       layers[0](i, 0) = random01();
     }
     for(int i = 0; i < depth-1; ++i) {
-      layers[i+1] = layers[i] * mats[i];
+      layers[i+1] = mats[i] * layers[i];
       for(int j = 0; j < layerSizes[i+1]; ++j) {
         layers[i+1](j, 0) = activeFunc(layers[i+1](j, 0));
       }
@@ -347,33 +355,115 @@ public:
     }
     MatrixXf derivation(layerSizes[depth-1], 1);
     derivation = layers[depth-1] - answer;
-    const float deff = (derivation*derivation).sum() / layerSizes[depth-1];
+    //cout << derivation.squaredNorm() << "\n";
+    const float deff = derivation.squaredNorm();// / layerSizes[depth-1];
     for(int i = depth-2; i >= 0; --i) {
       const MatrixXf der = derivation;
-      for(int j = 0; j < layerSizes[i+1]; ++j) {
-        derivation(j, 0) = - layers[i+1].col(0).dot(mats[i].row(j)) / mats[i].row(j).squaredNorm();
+      derivation.resize(layerSizes[i], 1);
+      for(int j = 0; j < layerSizes[i]; ++j) {
+        derivation(j, 0) = - der.col(0).dot(mats[i].col(j)) / mats[i].col(j).squaredNorm();
       }
       for(int j = 0; j < layerSizes[i]; ++j) {
-        mats[i].row(j) -= der / layers[i](j, 0) * alpha;
+        mats[i].col(j) -= der / notZero(layers[i](j, 0)) * alpha;
       }
     }
     return deff;
   }
 };
 
-int main() {
-  AI ai;
-  for(int i = 0; i < 10000; ++i) {
-    cout << ai.train(0.0001) << "\n";
+void drawLineChart(int x, int y, int w, int h, int pos, const vector<float> &data, int space=10, int padding=10) {
+  float maxVal = data[0], minVal = data[0];
+  for(float val : data) {
+    if(val > maxVal) maxVal = val;
+    if(val < minVal) minVal = val;
   }
+  const int n = data.size();
+  vector<ege::ege_point> points;
+  for(size_t i = 0; i < data.size(); ++i) {
+    ege::ege_point p;
+    p.x = w + (i-n) * space + pos;
+    p.y = h - (data[i] - minVal) / (maxVal - minVal) * h;
+    points.push_back(p);
+  }
+  ege::PIMAGE img = ege::newimage(w, h);
+  ege::setbkcolor(ege::GRAY, img);
+  //ege::setfillcolor(ege::GRAY);
+  //ege::fillrect(x-padding, y+padding, x+w+padding, y+h+padding);
+  ege::setcolor(ege::BLACK);
+  for(size_t i = 1; i < points.size(); ++i) {
+    ege::line(points[i-1].x, points[i-1].y, points[i].x, points[i].y, img);
+  }
+  ege::putimage(x, y, img);
+}
+
+int main() {
+  ege::initgraph(640, 480);
+  ege::setcolor(ege::WHITE);
+  ege::setbkcolor(ege::BLACK);
+  ege::setfillcolor(ege::GRAY);
+  ege::cleardevice();
+  AI ai;
+  srand(time(nullptr));
+  vector<float> graph;
+  train:
+  float minDeff = 1000000.0f;
+  for(int i = 0; 1; ++i) {
+    const float deff = ai.train(0.0001);
+    if(deff < minDeff) {
+      minDeff = deff;
+      cout << i << " " << minDeff << "\n";
+      graph.push_back(minDeff);
+      cout << "Graph size: " << graph.size() << "\n";
+      for(const auto &val : graph) {
+        cout << val << " ";
+      }
+      cout << "\n";
+      //cout << "Min deff: " << minDeff << "\n";
+      ege::cleardevice();
+      ege::xyprintf(10, 10, "%.6f", minDeff);
+      drawLineChart(10, 30, 620, 440, 0, graph);
+      ege::delay_ms(0);
+      if(minDeff < 0.001f) {
+        break;
+      }
+    }
+    if(!(i&0x7fff))
+    {
+      cout << i << " " << minDeff << "\n";
+    }
+  }
+  //cout << "Min deff: " << minDeff << "\n";
   while(true) {
     MatrixXf in(9, 1);
     for(int i = 0; i < 9; ++i) {
       cin >> in(i, 0);
+      if(in(0,0) < 0) {
+        break;
+      }
     }
-    if(in(0, 0) < 0) {
-      break;
+    bool _continue = false;
+    switch(int(-in(0,0))) {
+      case 1:
+        exit(0);
+      case 2:
+        goto train;
+      case 3: {
+        float minDeff = 1000000.0f;
+        MatrixXf best = MatrixXf::Zero(9, 1);
+        for(int i=0; i<100000; i++) {
+          MatrixXf in = MatrixXf::Random(9,1);
+          const float deff = ai.deff(in);
+          if(deff < minDeff) {
+            minDeff = deff;
+            best = in;
+          }
+        }
+        cout << minDeff << "\n";
+      }
+      _continue = 1;
+      default:;
     }
+    if(_continue) continue;
     cout << ai.exec(in) << "\t" << ai.deff(in) << "\n";
   }
   return 0;

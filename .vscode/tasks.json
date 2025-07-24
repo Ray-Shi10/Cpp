@@ -4,17 +4,27 @@
 		{
 			"type": "cppbuild",
 			"label": "C/C++: g++.exe build active file",
-			"command": "C:\\tools\\msys64\\ucrt64\\bin\\g++.exe",
+			"command": "C:\\tools\\msys64\\mingw64\\bin\\g++.exe",
 			"args": [
-				"-g", /**/"${file}",/*/
-				"${workspaceFolder}\\",/**/
+				"-fdiagnostics-color=always",
+				"-g", "${file}",
 				"-o", "${fileDirname}\\${fileBasenameNoExtension}.exe",
-				"-IC:\\tools\\msys64\\ucrt64\\include",
-				"-I${workspaceFolder}\\eigen-3.4.0",
+				"-IC:\\tools\\ege\\include",
 				"-I${workspaceFolder}\\Headers",
+				"-I${workspaceFolder}\\eigen-3.4.0",
+				"-LC:\\tools\\ege\\lib\\mingw64\\mingw-w64-gcc-8.1.0-x86_64",
+				"-lgraphics",
+				"-luuid",
+				"-lmsimg32",
+				"-lgdi32",
+				"-limm32",
+				"-lole32",
+				"-loleaut32",
+				"-lwinmm",
+				"-lgdiplus",
 			],
 			"options": {
-				"cwd": "${workspaceFolder}"
+				"cwd": "C:/tools/msys64/mingw64/bin"
 			},
 			"problemMatcher": [
 				"$gcc"
@@ -23,7 +33,7 @@
 				"kind": "build",
 				"isDefault": true
 			},
-			"detail": "compiler: C:\\tools\\msys64\\ucrt64\\bin\\g++.exe"
+			"detail": "compiler: C:/tools/msys64/mingw64/bin/g++.exe"
 		}
 	]
 }
