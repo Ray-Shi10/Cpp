@@ -13,7 +13,7 @@ public:
 	using tuple_type = std::tuple<std::remove_cv_t<std::remove_reference_t<__Args>>...>;
 	//using bare_tuple_type = std::tuple<std::remove_const_t<std::remove_reference_t<__Args>>...>;
 	template <size_t I>
-	struct args {
+	struct ktharg {
 		static_assert(I < arglen, "index is out of range, index must less than sizeof Args");
 		using type = typename std::tuple_element<I, std::tuple<__Args...>>::type;
 	};
@@ -26,6 +26,9 @@ public:
     }
     return_type operator()(__Args... args) {
         return func(args...);
+    }
+    operator pointer_type() {
+        return func;
     }
 };
 
@@ -73,11 +76,14 @@ auto make_function(_Func f) {
     return function<_Func>(f);
 }
 
+typedef int(*func)(int,int);
+
 int main() {/*
     function<int(int, int)> sum = [=](int a, int b) { return a + b; };
     std::cout << "sum1:  " << sum(1, 2) << std::endl;/*/
-    auto sum = make_function(([=](int a, int b) { return a + b; }));
-    std::cout << "sum2:  " << sum(1, 2) << std::endl;//*/
+    int c;
+    func sum = make_function(([c](int a, int b) { return a + b; }));
+    std::cout << "sum:  " << sum(1, 2) << std::endl;//*/
     std::tuple<int, int> t(1, 2);
     return 0;
 }

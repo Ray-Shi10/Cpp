@@ -52,11 +52,12 @@ public:
         if(bound) bound -> unbind();
     }
 private:
-    template <typename buffer_t, size_t index=buffer_t::packLen, size_t offset=buffer_t::packSize>
+    template <typename buffer_t, size_t index=buffer_t::packLen, size_t offset=0>
     static void _setVertAttrib(buffer_t const&buffer, GLuint divisor, GLuint &attribIndex) {
         using type = typename buffer_t::kthType<index>::type;
         using typeInfoGLM = glm::solveType<type>;
         using typeInfoGL  = GLTypeInfo<typename typeInfoGLM::type>;
+        std::cout << typeInfoGLM::n << " " << typeInfoGLM::m << " " << typeInfoGLM::size << " " << typeInfoGL::value << " " << buffer_t::packSize << " " << offset << "\n";
         for(glm::length_t i=0; i<typeInfoGLM::m; i++) {
             glVertexAttribPointer(attribIndex, typeInfoGLM::n, typeInfoGL::value, GL_FALSE, buffer_t::packSize, (void const*)offset);
             glVertexAttribDivisor(attribIndex, divisor);
@@ -64,7 +65,7 @@ private:
             attribIndex++;
         }
     }
-    template <typename buffer_t, size_t index=buffer_t::packLen-1, size_t offset=buffer_t::packSize>
+    template <typename buffer_t, size_t index=buffer_t::packLen-1, size_t offset=0>
     struct setVertAttrib {
         setVertAttrib(buffer_t const&buffer, GLuint divisor, GLuint &attribIndex) {
             _setVertAttrib<buffer_t, index, offset>(buffer, divisor, attribIndex);

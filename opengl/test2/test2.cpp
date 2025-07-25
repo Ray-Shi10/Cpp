@@ -52,21 +52,21 @@ int main() {
     )");
     Buffer<glm::vec3, glm::vec3> cubeAttributes({
          //position                //color
-        {{-0.5f, -0.5f, -0.5f},    {0.0f, 0.0f, 0.0f}}, 
-        {{ 0.5f, -0.5f, -0.5f},    {1.0f, 0.0f, 0.0f}}, 
-        {{-0.5f,  0.5f, -0.5f},    {0.0f, 1.0f, 0.0f}}, 
-        {{ 0.5f,  0.5f, -0.5f},    {1.0f, 1.0f, 0.0f}}, 
-        {{-0.5f, -0.5f,  0.5f},    {0.0f, 0.0f, 1.0f}}, 
-        {{ 0.5f, -0.5f,  0.5f},    {1.0f, 0.0f, 1.0f}}, 
-        {{-0.5f,  0.5f,  0.5f},    {0.0f, 1.0f, 1.0f}}, 
+        {{-0.5f, -0.5f, -0.5f},    {0.0f, 0.0f, 0.0f}},
+        {{ 0.5f, -0.5f, -0.5f},    {1.0f, 0.0f, 0.0f}},
+        {{-0.5f,  0.5f, -0.5f},    {0.0f, 1.0f, 0.0f}},
+        {{ 0.5f,  0.5f, -0.5f},    {1.0f, 1.0f, 0.0f}},
+        {{-0.5f, -0.5f,  0.5f},    {0.0f, 0.0f, 1.0f}},
+        {{ 0.5f, -0.5f,  0.5f},    {1.0f, 0.0f, 1.0f}},
+        {{-0.5f,  0.5f,  0.5f},    {0.0f, 1.0f, 1.0f}},
         {{ 0.5f,  0.5f,  0.5f},    {1.0f, 1.0f, 1.0f}},
     });
     Buffer<glm::vec2, glm::vec3> quadAttributes({
          //position                //color
-        {{-0.5f, -0.5f},    {0.0f, 0.0f, 1.0f}}, 
-        {{ 0.5f, -0.5f},    {1.0f, 0.0f, 0.0f}}, 
-        {{-0.5f,  0.5f},    {0.0f, 1.0f, 0.0f}}, 
-        {{ 0.5f,  0.5f},    {1.0f, 1.0f, 0.0f}}, 
+        {{-0.5f, -0.5f},    {0.0f, 0.0f, 1.0f}},
+        {{ 0.5f, -0.5f},    {1.0f, 0.0f, 0.0f}},
+        {{-0.5f,  0.5f},    {0.0f, 1.0f, 0.0f}},
+        {{ 0.5f,  0.5f},    {1.0f, 1.0f, 0.0f}},
     });
     float *tmp = (float*)cubeAttributes.dataPtr();
     /**
@@ -114,8 +114,9 @@ int main() {
         std::out << "Window focus: " << focused << std::endl;
     }));
     glEnable(GL_DEPTH_TEST);
-    while(window.shouldClose()) {
+    while(window.shouldClose() || window2.shouldClose()) {
         //window.active();
+        window.focus();
         window.newFrame();
         window.clearDevice(0.2f, 1.0f);
         window.clearDepth();
@@ -138,9 +139,8 @@ int main() {
             //shader.unuse();
         //VAO.unbind();
         window.swapBuffers();
-        glfwPollEvents();
-        
-        window2.active();
+
+        window2.focus();
         window2.clearDevice(0.2f, 1.0f);
         VAO2.bind();
             shader2.use();
@@ -148,7 +148,8 @@ int main() {
             //shader2.unuse();
         //VAO2.unbind();
         window2.swapBuffers();
-        //glfwPollEvents();
+
+        glfwPollEvents();
     }
     return 0;
 }
