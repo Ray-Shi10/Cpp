@@ -110,7 +110,7 @@ int main() {
 
     glEnable(GL_DEPTH_TEST);
 
-    while(window.shouldClose()) {
+    while(!window.shouldClose()) {
         window.newFrame();
         window.clearDevice(0.2f, 1.0f);
         window.clearDepth();

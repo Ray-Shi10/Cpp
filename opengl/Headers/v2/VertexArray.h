@@ -57,7 +57,7 @@ private:
         using type = typename buffer_t::kthType<index>::type;
         using typeInfoGLM = glm::solveType<type>;
         using typeInfoGL  = GLTypeInfo<typename typeInfoGLM::type>;
-        std::cout << typeInfoGLM::n << " " << typeInfoGLM::m << " " << typeInfoGLM::size << " " << typeInfoGL::value << " " << buffer_t::packSize << " " << offset << "\n";
+        //std::cout << typeInfoGLM::n << " " << typeInfoGLM::m << " " << typeInfoGLM::size << " " << typeInfoGL::value << " " << buffer_t::packSize << " " << offset << "\n";
         for(glm::length_t i=0; i<typeInfoGLM::m; i++) {
             glVertexAttribPointer(attribIndex, typeInfoGLM::n, typeInfoGL::value, GL_FALSE, buffer_t::packSize, (void const*)offset);
             glVertexAttribDivisor(attribIndex, divisor);
