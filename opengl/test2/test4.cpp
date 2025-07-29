@@ -1,8 +1,8 @@
 #include <vector>
 #include <v2/Shader.h>
-#include <v2/Canvas.h>
+// #include <v2/Canvas.h>
 #include <v2/Window.h>
-#include <v2/VertexArray.h>
+//#include <v2/VertexArray.h>
 #include <v2/Camera.h>
 
 int main() {
@@ -126,13 +126,13 @@ int main() {
     } attribs[];
     out gs2fs {
       vec2 texCoord;
+      flat uint blockType;
     } attrib;
     layout (triangle_strip, max_vertices = 14) out;
-    out vec3 fragColor;
     uniform mat4 camTrans;
     void addPoint(vec3 offset, vec2 texCoord) {
       gl_Position = camTrans * ( gl_in[0].gl_Position + vec4(offset/2, 0.0f) );
-      //fragColor = color;
+      attrib.blockType = attribs[0].blockType;
       attrib.texCoord = texCoord;
       EmitVertex();
     }
@@ -155,18 +155,26 @@ int main() {
       EndPrimitive();
     })", R"(
     out vec4 FragColor;
-    in vec3 fragColor;
     in gs2fs {
       vec2 texCoord;
+      flat uint blockType;
     } attrib;
     uniform sampler2D cubeTexture;
+    uniform sampler2D cubeTexture2;
     uniform vec2 textureSize;
     void main() {
-      FragColor = vec4(vec3(texture(cubeTexture, attrib.texCoord/textureSize)), 1.0f);
+      const vec2 coord = attrib.texCoord / textureSize;
+      if(attrib.blockType == 1U) {
+        FragColor = vec4(vec3(texture(cubeTexture , coord)), 1.0f);
+      } else if(attrib.blockType == 2U) {
+        FragColor = vec4(vec3(texture(cubeTexture2, coord)), 1.0f);
+      } else {
+        FragColor = vec4(0.6f, 0.1f, 0.3f, 1.0f); //Error
+      }
     })"
   );
 
-  constexpr glm::ivec3 viewCoordMax(2) , viewCoordMin(-viewCoordMax),
+  constexpr glm::ivec3 viewCoordMax(3,2,3) , viewCoordMin(-viewCoordMax),
         viewSize = viewCoordMax - viewCoordMin + glm::ivec3(1);
   constexpr GLuint cubeamount = viewSize.x*viewSize.y*viewSize.z;
   glm::vec3 positions[viewSize.x][viewSize.y][viewSize.z];
@@ -185,7 +193,13 @@ int main() {
   for(int x = 0; x < viewSize.x; x++) {
     for(int y = 0; y < viewSize.y; y++) {
       for(int z = 0; z < viewSize.z; z++) {
-        blockTypes[x][y][z] = !(x==0 || y==0 || z==0 || x==viewSize.x-1 || y==viewSize.y-1 || z==viewSize.z-1);
+        if(x==0 || y==0 || z==0 || x==viewSize.x-1 || y==viewSize.y-1 || z==viewSize.z-1) {
+          blockTypes[x][y][z] = 0U;
+        } else if(y==3) {
+          blockTypes[x][y][z] = 1U;
+        } else {
+          blockTypes[x][y][z] = 2U;
+        }
       }
     }
   }
@@ -203,44 +217,40 @@ int main() {
       glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 1*sizeof(GLenum), (void*)(0));
       ;
       const GLenum _tmp[1] = {0U};
-      int cx = viewSize.x / 2;
-      int cy = viewSize.y / 2;
-      int cz = viewSize.z / 2;
-      size_t index = cx * (viewSize.y * viewSize.z) + cy * viewSize.z + cz;
-      size_t offset = index * sizeof(GLenum);
       glBufferSubData(GL_ARRAY_BUFFER, (&blockTypes[2][2][2]-&blockTypes[0][0][0])*sizeof(GLenum), sizeof(GLenum), _tmp);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(0);
 
-  GLuint textureID;
-  glGenTextures(1, &textureID);
-  glBindTexture(GL_TEXTURE_2D, textureID);
-  // Set texture parameters
+  GLuint textureID[2];
+  glGenTextures(2, textureID);
+
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, textureID[0]);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  // Load image
-  // int width, height, channels;
-  // unsigned char* data = stbi_load(filename, &width, &height, &channels, 0);
-  // if (data) {
-  //   GLenum format = (channels == 4) ? GL_RGBA : GL_RGB;
-  //   glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-  //   glGenerateMipmap(GL_TEXTURE_2D);
-  // } else {
-  //   std::cerr << "Failed to load texture: " << filename << std::endl;
-  // }
-  unsigned char image[] = {0,255,0, 128, 64, 32, 0,0,0}; // Example image data
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 3, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+  unsigned char image[] = {51,105,30,104,159,56,51,105,30,104,159,56,104,159,56,51,105,30,104,159,56,51,105,30,51,105,30,51,105,30,104,159,56,51,105,30,104,159,56,104,159,56,51,105,30,104,159,56,104,159,56,121,85,72,104,159,56,121,85,72,62,39,35,93,64,55,121,85,72,62,39,35,93,64,55,62,39,35,93,64,55,62,39,35,62,39,35,93,64,55,62,39,35,93,64,55,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,93,64,55,62,39,35,93,64,55,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,93,64,55,};
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 4, 12, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
   glGenerateMipmap(GL_TEXTURE_2D);
-  glActiveTexture(GL_TEXTURE0);
-  //glBindTexture(GL_TEXTURE_2D, textureID);
-  //glBindTexture(GL_TEXTURE_2D, 0);
   shader1.use();
-    //shader1.set("cubeTexture", 0);
     shader1.set("cubeTexture", 0);
     shader1.set("textureSize", glm::vec2(1, 3));
-    //shader1.set("camTrans", camera.getMatrix());
+  shader1.unuse();
+
+  // Second texture
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, textureID[1]);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  unsigned char image2[] = {62,39,35,62,39,35,93,64,55,62,39,35,93,64,55,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,93,64,55,62,39,35,62,39,35,93,64,55,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,93,64,55,62,39,35,62,39,35,62,39,35,62,39,35,93,64,55,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,93,64,55,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,93,64,55,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,93,64,55,};
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 4, 12, 0, GL_RGB, GL_UNSIGNED_BYTE, image2);
+  glGenerateMipmap(GL_TEXTURE_2D);
+  shader1.use();
+    shader1.set("cubeTexture2", 1);
+    shader1.set("textureSize", glm::vec2(1, 3));
   shader1.unuse();
 
   while(!window.shouldClose()) {

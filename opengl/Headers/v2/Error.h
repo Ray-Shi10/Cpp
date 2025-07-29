@@ -28,7 +28,7 @@ void initError() {
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         glGetError(); // clear error
         glDebugMessageControl(GL_DEBUG_SOURCE_API, GL_DEBUG_TYPE_ERROR, GL_DEBUG_SEVERITY_HIGH, 0, nullptr, GL_TRUE);
-        std::out << "Setting OpenGL debug callback\r";
+        std::out << "Setting OpenGL debug callback...\r";
         glDebugMessageCallback([](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam) {
             if(id == 131169 || id == 131185 || id == 131218 || id == 131204) return;
             std::error << "GL-ERROR(" << id << "): " <<  message << "\n";
@@ -46,7 +46,7 @@ void initError() {
             switch (type) {
                 case GL_DEBUG_TYPE_ERROR:               std::error << "Error"; break;
                 case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: std::error << "Deprecated Behaviour"; break;
-                case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  std::error << "Undefined Behaviour"; break; 
+                case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  std::error << "Undefined Behaviour"; break;
                 case GL_DEBUG_TYPE_PORTABILITY:         std::error << "Portability"; break;
                 case GL_DEBUG_TYPE_PERFORMANCE:         std::error << "Performance"; break;
                 case GL_DEBUG_TYPE_MARKER:              std::error << "Marker"; break;
