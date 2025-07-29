@@ -43,6 +43,7 @@ private:
         }
     }
     static shaderID compile(shaderSource shaderCode, shaderID type) {
+        // std::cout << shaderCode << "\n";
         std::out << "Compiling shader of type " << getShaderTypeName(type) << "...\r";
         //std::out << shaderCode << "\n";
         shaderID shader = glCreateShader(type);
@@ -80,28 +81,30 @@ public:
     }
     ShaderProgram(vector<shaderID> shaders) { link(shaders); }
     void use() const { glUseProgram(ID); } void unuse() const { glUseProgram(0); }
-    GLint getUniformLocation(string name) const { return glGetUniformLocation(ID, name.c_str()); }
+    GLint get(string name) const { return glGetUniformLocation(ID, name.c_str()); }
+    operator GLuint () const { return ID; }
+    operator GLuint&()       { return ID; }
 
     template <typename T> void set(string name, T value) const { set(name, (int)value); }
-    void set(string name, int value) const { glUniform1i(getUniformLocation(name), value); }
-    void set(string name, float value) const { glUniform1f(getUniformLocation(name), value); }
+    void set(string name, int value) const { glUniform1i(get(name), value); }
+    void set(string name, float value) const { glUniform1f(get(name), value); }
     void set(string name, glm::vec2 const&value) const {
-        glUniform2fv(getUniformLocation(name), 1, value_ptr(value));
+        glUniform2fv(get(name), 1, value_ptr(value));
     }
     void set(string name, glm::vec3 const&value) const {
-        glUniform3fv(getUniformLocation(name), 1, value_ptr(value));
+        glUniform3fv(get(name), 1, value_ptr(value));
     }
     void set(string name, glm::vec4 const&value) const {
-        glUniform4fv(getUniformLocation(name), 1, value_ptr(value));
+        glUniform4fv(get(name), 1, value_ptr(value));
     }
     void set(string name, glm::mat2 const&value) const {
-        glUniformMatrix2fv(getUniformLocation(name), 1, GL_FALSE, value_ptr(value));
+        glUniformMatrix2fv(get(name), 1, GL_FALSE, value_ptr(value));
     }
     void set(string name, glm::mat3 const&value) const {
-        glUniformMatrix3fv(getUniformLocation(name), 1, GL_FALSE, value_ptr(value));
+        glUniformMatrix3fv(get(name), 1, GL_FALSE, value_ptr(value));
     }
     void set(string name, glm::mat4 const&value) const {
-        glUniformMatrix4fv(getUniformLocation(name), 1, GL_FALSE, value_ptr(value));
+        glUniformMatrix4fv(get(name), 1, GL_FALSE, value_ptr(value));
     }
 };
 
