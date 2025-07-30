@@ -9,67 +9,9 @@ int main() {
   using std::vector;
   initGLFW(4,6);
   Window window("Test", glm::uvec2(800, 600), glm::vec2(1200, 800));
-  // FrameBuffer FBO(
-  //     "vec4 getColor(vec4 color) {\n"
-  //         "const vec2 offset = pixelSize;\n"
-  //         "const vec2 offsets[9] = vec2[](\n"
-  //             "vec2(-offset.x,  offset.y), // 左上\n"
-  //             "vec2( 0.0f    ,  offset.y), // 正上\n"
-  //             "vec2( offset.x,  offset.y), // 右上\n"
-  //             "vec2(-offset.x,  0.0f    ), // 正左\n"
-  //             "vec2( 0.0f    ,  0.0f    ), // 正中\n"
-  //             "vec2( offset.x,  0.0f    ), // 正右\n"
-  //             "vec2(-offset.x, -offset.y), // 左下\n"
-  //             "vec2( 0.0f    , -offset.y), // 正下\n"
-  //             "vec2( offset.x, -offset.y)  // 右下\n"
-  //         ");\n"
-  //         "float kernel[9] = float[](\n"
-  //             "-1.0f, -1.0f, -1.0f, \n"
-  //             "-1.0f,  9.0f, -1.0f, \n"
-  //             "-1.0f, -1.0f, -1.0f  \n"
-  //         ");\n"
-  //         "vec4 sampleTex[9];\n"
-  //         "for(int i = 0; i < 9; i++) {\n"
-  //             "sampleTex[i] = texture(screenTexture, texCoord + offsets[i]);\n"
-  //         "}\n"
-  //         "vec4 col = vec4(0.0);\n"
-  //         "for(int i = 0; i < 9; i++) {\n"
-  //             "col += sampleTex[i] * kernel[i];\n"
-  //         "}\n"
-  //         "return col;\n"
-  //     "}\n"
-  // ), FBO2; GLushort type=0;
   Camera camera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(800,600,1000),
           0.01f, 1000.0f, 3.0f, 0.005f, 0.0f);
   const Camera startCamera = camera;
-  glfwSetWindowPos(window, 1500, 1000);
-  // float aspect = glm::sqrt2;
-  // window.onSize = [&](GLFWwindow*, int width, int height) {
-  //     window.getFramebufferSizeEvent(width, height, false);
-  //     int size = std::max<int>(width/aspect, height);
-  //     camera.view = glm::vec3(size*aspect, size, size);
-  //     glViewport(width/2-size*aspect/2, height/2-size/2, size*aspect, size);
-  //     FBO.resize(width, height); FBO2.resize(width, height);
-  // }; glfwSetWindowSize(window, 800*aspect, 800);
-  // window.onCursorMove = [&](GLFWwindow*, double xpos, double ypos) {
-  //     window.getCursorMoveEvent(xpos, ypos);
-  //     camera.rotate(glm::vec3(window.mouse.offset.y, window.mouse.offset.x, 0.0f));
-  // };
-  // window.onKey = [&](GLFWwindow*, int key, int scancode, int action, int mods) {
-  //     window.getKeyEvent(key, scancode, action, mods);
-  //     if(mods & GLFW_MOD_CONTROL) {
-  //         glfwSetWindowShouldClose(window, true);
-  //     }
-  //     if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-  //         window.window.active ^= 1;
-  //     }
-  // };
-  // window.onFocus = [&](GLFWwindow*, int focused) {
-  //     window.getFocusEvent(focused);
-  //     window.window.active &= focused;
-  // };
-  // window.setCursorMode(GLFW_CURSOR_DISABLED);
-  // glEnable(GL_DEPTH_TEST);
   window.setCursorMode(GLFW_CURSOR_DISABLED);
 
   glfwSetKeyCallback(window, make_function([&](GLFWwindow*, int key, int scancode, int action, int mods) {
@@ -159,18 +101,15 @@ int main() {
       vec2 texCoord;
       flat uint blockType;
     } attrib;
-    uniform sampler2D cubeTexture;
-    uniform sampler2D cubeTexture2;
+    uniform sampler2DArray texArray;
     uniform vec2 textureSize;
     void main() {
-      const vec2 coord = attrib.texCoord / textureSize;
-      if(attrib.blockType == 1U) {
-        FragColor = vec4(vec3(texture(cubeTexture , coord)), 1.0f);
-      } else if(attrib.blockType == 2U) {
-        FragColor = vec4(vec3(texture(cubeTexture2, coord)), 1.0f);
-      } else {
-        FragColor = vec4(0.6f, 0.1f, 0.3f, 1.0f); //Error
-      }
+      // Debug: output solid color to check geometry
+      // FragColor = vec4(1,0,0,1);
+      // Sample from texture array
+      vec2 uv = attrib.texCoord / textureSize;
+      float layerIndex = float(attrib.blockType-1U);
+      FragColor = vec4(vec3(texture(texArray, vec3(uv, layerIndex))),1.0f);
     })"
   );
 
@@ -221,35 +160,25 @@ int main() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(0);
 
-  GLuint textureID[2];
-  glGenTextures(2, textureID);
-
+  GLuint textureID;
+  glGenTextures(1, &textureID);
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, textureID[0]);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  unsigned char image[] = {51,105,30,104,159,56,51,105,30,104,159,56,104,159,56,51,105,30,104,159,56,51,105,30,51,105,30,51,105,30,104,159,56,51,105,30,104,159,56,104,159,56,51,105,30,104,159,56,104,159,56,121,85,72,104,159,56,121,85,72,62,39,35,93,64,55,121,85,72,62,39,35,93,64,55,62,39,35,93,64,55,62,39,35,62,39,35,93,64,55,62,39,35,93,64,55,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,93,64,55,62,39,35,93,64,55,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,93,64,55,};
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 4, 12, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
-  glGenerateMipmap(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D_ARRAY, textureID);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGBA8, 4, 12, 2);
+  const unsigned char imgs[2][3*4*12] = {
+    {51,105,30,104,159,56,51,105,30,104,159,56,104,159,56,51,105,30,104,159,56,51,105,30,51,105,30,51,105,30,104,159,56,51,105,30,104,159,56,104,159,56,51,105,30,104,159,56,104,159,56,121,85,72,104,159,56,121,85,72,62,39,35,93,64,55,121,85,72,62,39,35,93,64,55,62,39,35,93,64,55,62,39,35,62,39,35,93,64,55,62,39,35,93,64,55,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,93,64,55,62,39,35,93,64,55,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,93,64,55},
+    {62,39,35,62,39,35,93,64,55,62,39,35,93,64,55,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,93,64,55,62,39,35,62,39,35,93,64,55,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,93,64,55,62,39,35,62,39,35,62,39,35,62,39,35,93,64,55,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,93,64,55,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,93,64,55,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,93,64,55},
+  };
+  for (int i = 0; i < 2; i++) {
+    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, 4, 12, 1, GL_RGB, GL_UNSIGNED_BYTE, imgs[i]);
+  }
   shader1.use();
-    shader1.set("cubeTexture", 0);
-    shader1.set("textureSize", glm::vec2(1, 3));
-  shader1.unuse();
-
-  // Second texture
-  glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, textureID[1]);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  unsigned char image2[] = {62,39,35,62,39,35,93,64,55,62,39,35,93,64,55,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,93,64,55,62,39,35,62,39,35,93,64,55,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,93,64,55,62,39,35,62,39,35,62,39,35,62,39,35,93,64,55,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,93,64,55,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,93,64,55,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,62,39,35,93,64,55,};
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 4, 12, 0, GL_RGB, GL_UNSIGNED_BYTE, image2);
-  glGenerateMipmap(GL_TEXTURE_2D);
-  shader1.use();
-    shader1.set("cubeTexture2", 1);
+    shader1.set("texArray", 0);
     shader1.set("textureSize", glm::vec2(1, 3));
   shader1.unuse();
 
@@ -286,11 +215,6 @@ int main() {
         glDrawArrays(GL_POINTS, viewSize.y*viewSize.z+viewSize.z+1, viewSize.x*viewSize.y*viewSize.z-2*viewSize.y*viewSize.z-2*viewSize.z-2);
       shader1.unuse();
     glBindVertexArray(0);
-
-    // switch(type) {
-    //     case 0: FBO .draw(); break;
-    //     case 1: FBO2.draw(); break;
-    // }
 
     window.swapBuffers();
     glfwPollEvents();
