@@ -6,54 +6,68 @@
 //#include <GLFW/glfw3native.h>
 #include "Colorful.h"
 
+constexpr unsigned char GLFW_KEYS[256] = {
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  GLFW_KEY_SPACE, 0,0,0,0,0,0, GLFW_KEY_APOSTROPHE, 0,0,0,0,
+  GLFW_KEY_COMMA, GLFW_KEY_MINUS, GLFW_KEY_PERIOD, GLFW_KEY_SLASH,
+  GLFW_KEY_0, GLFW_KEY_1, GLFW_KEY_2, GLFW_KEY_3, GLFW_KEY_4, GLFW_KEY_5, GLFW_KEY_6, GLFW_KEY_7, GLFW_KEY_8, GLFW_KEY_9,
+  0, GLFW_KEY_SEMICOLON, 0, GLFW_KEY_EQUAL,
+  GLFW_KEY_A, GLFW_KEY_B, GLFW_KEY_C, GLFW_KEY_D, GLFW_KEY_E, GLFW_KEY_F, GLFW_KEY_G, GLFW_KEY_H,
+  GLFW_KEY_I, GLFW_KEY_J, GLFW_KEY_K, GLFW_KEY_L, GLFW_KEY_M, GLFW_KEY_N, GLFW_KEY_O, GLFW_KEY_P,
+  GLFW_KEY_Q, GLFW_KEY_R, GLFW_KEY_S, GLFW_KEY_T, GLFW_KEY_U, GLFW_KEY_V, GLFW_KEY_W, GLFW_KEY_X,
+  GLFW_KEY_Y, GLFW_KEY_Z, GLFW_KEY_LEFT_BRACKET, GLFW_KEY_BACKSLASH, GLFW_KEY_RIGHT_BRACKET, 0,0,
+  GLFW_KEY_GRAVE_ACCENT, 0
+};
+#define GLFWkey(key) (GLFW_KEYS[key])
+
 void initGLFW(short major, short minor) {
-    char version[16];
-    sprintf(version, "GLFW-v%d.%d", major, minor);
-    std::out << "Initializing " << version << " ...\r";
-    if(/**/glfwInit()/*/1/**/) {
-        std::succ << "Initialized " << version << " successfully" << "\n";
-    } else {
-        std::error << "Failed to initialize " << version << "\n";
-        exit(-1);
-    }
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, major);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, minor);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+  char version[16];
+  sprintf(version, "GLFW-v%d.%d", major, minor);
+  std::out << "Initializing " << version << " ...\r";
+  if(/**/glfwInit()/*/1/**/) {
+    std::succ << "Initialized " << version << " successfully" << "\n";
+  } else {
+    std::error << "Failed to initialize " << version << "\n";
+    exit(-1);
+  }
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, major);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, minor);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
 #ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 }
 
 GLFWwindow* glfwCreateWindow(int width, int height, const char* title, bool context=true) {
-    GLFWwindow *window = glfwCreateWindow(width, height, title, NULL, NULL);
-    std::out << "Creating GLFW window...\r";
-    if (window) {
-        std::succ << "Created GLFW window successfully\n";
-    } else {
-        std::error << "Failed to create GLFW window\n";
-        glfwTerminate(); exit(-1);
-    }
-    if(context) {
-        glfwMakeContextCurrent(window);
-    }
-    return window;
+  GLFWwindow *window = glfwCreateWindow(width, height, title, NULL, NULL);
+  std::out << "Creating GLFW window...\r";
+  if (window) {
+    std::succ << "Created GLFW window successfully\n";
+  } else {
+    std::error << "Failed to create GLFW window\n";
+    glfwTerminate(); exit(-1);
+  }
+  if(context) {
+    glfwMakeContextCurrent(window);
+  }
+  return window;
 }
 
 size_t size_of(GLenum type, size_t _default = 0) {
-    switch(type) {
-        case GL_BYTE           : return sizeof(GLbyte)      ;
-        case GL_UNSIGNED_BYTE  : return sizeof(GLubyte)     ;
-        case GL_SHORT          : return sizeof(GLshort)     ;
-        case GL_UNSIGNED_SHORT : return sizeof(GLushort)    ;
-        case GL_INT            : return sizeof(GLint)       ;
-        case GL_UNSIGNED_INT   : return sizeof(GLuint)      ;
-        case GL_FLOAT          : return sizeof(GLfloat)     ;
-        case GL_DOUBLE         : return sizeof(GLdouble)    ;
-        //case GL_HALF_FLOAT     : return sizeof(GLhalf)      ;
-        //case GL_FIXED          : return sizeof(GLfixed)     ;
-        default: return _default;
-    }
+  switch(type) {
+    case GL_BYTE           : return sizeof(GLbyte)      ;
+    case GL_UNSIGNED_BYTE  : return sizeof(GLubyte)     ;
+    case GL_SHORT          : return sizeof(GLshort)     ;
+    case GL_UNSIGNED_SHORT : return sizeof(GLushort)    ;
+    case GL_INT            : return sizeof(GLint)       ;
+    case GL_UNSIGNED_INT   : return sizeof(GLuint)      ;
+    case GL_FLOAT          : return sizeof(GLfloat)     ;
+    case GL_DOUBLE         : return sizeof(GLdouble)    ;
+    //case GL_HALF_FLOAT     : return sizeof(GLhalf)      ;
+    //case GL_FIXED          : return sizeof(GLfixed)     ;
+    default: return _default;
+  }
 }
 
 template <typename T> class GLTypeInfo { public: using type = void;     constexpr static GLenum value = 0                 ; constexpr static size_t size = 0;                  };

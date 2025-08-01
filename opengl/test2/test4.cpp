@@ -9,8 +9,8 @@ int main() {
   using std::vector;
   initGLFW(4,6);
   Window window("Test", glm::uvec2(800, 600), glm::vec2(1200, 800));
-  Camera camera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(800,600,1000),
-          0.01f, 1000.0f, 3.0f, 0.005f, 0.0f);
+  Camera camera(glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(800,600,1000),
+          0.01f, 1000, 3, 0.005f, 0);
   const Camera startCamera = camera;
   window.setCursorMode(GLFW_CURSOR_DISABLED);
 
@@ -22,8 +22,8 @@ int main() {
           std::cout << "Window active: " << window.window.active << "\n";
           break;
         case GLFW_KEY_TAB:
-          camera.pos = glm::vec3(0.0f, 0.0f, 0.0f);
-          camera.dir = glm::vec3(0.0f, 0.0f, 0.0f);
+          camera.pos = glm::vec3(0, 0, 0);
+          camera.dir = glm::vec3(0, 0, 0);
           break;
         case GLFW_KEY_LEFT_CONTROL:
           window.close();
@@ -42,7 +42,7 @@ int main() {
     window.mouse.offset = window.mouse.pos - window.mouse.last;
     window.mouse.last = window.mouse.pos;
     if(window.window.active)
-      camera.rotate(glm::vec3(window.mouse.offset.y, window.mouse.offset.x, 0.0f));
+      camera.rotate(glm::vec3(window.mouse.offset.y, window.mouse.offset.x, 0));
   }));
   glfwSetWindowFocusCallback(window, make_function([&](GLFWwindow*, int focused) {
     window.window.active = focused;
@@ -53,49 +53,93 @@ int main() {
   glEnable(GL_DEPTH_TEST);
 
   ShaderProgram shader1(R"(
-    layout (location = 0) in vec3 aPos;
-    layout (location = 1) in uint blockType;
-    out vs2gs {
-      uint blockType;
-    } attrib;
+    layout(location = 0) in vec3 iPos;
+    layout(location = 1) in uint iBlockType;
+    layout(location = 2) in uint iFaceBlocked;
+    flat out uint blockType;
+    flat out uint faceBlocked;
     void main() {
-      gl_Position = vec4(aPos, 1.0f);
-      attrib.blockType = blockType;
+      gl_Position = vec4(iPos, 1);
+      blockType = iBlockType;
+      faceBlocked = iFaceBlocked;
     })", R"(
-    layout (points) in;
-    in vs2gs {
-      uint blockType;
-    } attribs[];
+    layout(points) in;
+    flat in uint blockType[];
+    flat in uint faceBlocked[];
     out gs2fs {
       vec2 texCoord;
       flat uint blockType;
     } attrib;
-    layout (triangle_strip, max_vertices = 14) out;
+    layout(triangle_strip, max_vertices = 14) out;
     uniform mat4 camTrans;
+
+    // Helper: test if face is blocked
+    bool isBlocked(uint mask, int face) {
+      return false;
+      return (mask & (1U << face)) != 0U;
+    }
+
     void addPoint(vec3 offset, vec2 texCoord) {
-      gl_Position = camTrans * ( gl_in[0].gl_Position + vec4(offset/2, 0.0f) );
-      attrib.blockType = attribs[0].blockType;
+      gl_Position = camTrans * ( gl_in[0].gl_Position + vec4(offset/2, 0) );
+      attrib.blockType = blockType[0];
       attrib.texCoord = texCoord;
       EmitVertex();
     }
+
+    // Geometry Shader: fixed texCoord mapping for each face
     void main() {
-      if(attribs[0].blockType == 0U) return;
-      addPoint(vec3( 1.0f, 1.0f, 1.0f), vec2(0.0f, 0.0f));
-      addPoint(vec3(-1.0f, 1.0f, 1.0f), vec2(1.0f, 0.0f));
-      addPoint(vec3( 1.0f, 1.0f,-1.0f), vec2(0.0f, 1.0f));
-      addPoint(vec3(-1.0f, 1.0f,-1.0f), vec2(1.0f, 1.0f));
-      addPoint(vec3(-1.0f,-1.0f,-1.0f), vec2(1.0f, 2.0f));
-      addPoint(vec3(-1.0f, 1.0f, 1.0f), vec2(2.0f, 1.0f));
-      addPoint(vec3(-1.0f,-1.0f, 1.0f), vec2(2.0f, 2.0f));
-      addPoint(vec3( 1.0f, 1.0f, 1.0f), vec2(3.0f, 1.0f));
-      addPoint(vec3( 1.0f,-1.0f, 1.0f), vec2(3.0f, 2.0f));
-      addPoint(vec3( 1.0f, 1.0f,-1.0f), vec2(4.0f, 1.0f));
-      addPoint(vec3( 1.0f,-1.0f,-1.0f), vec2(4.0f, 2.0f));
-      addPoint(vec3(-1.0f,-1.0f,-1.0f), vec2(5.0f, 2.0f));
-      addPoint(vec3( 1.0f,-1.0f, 1.0f), vec2(4.0f, 3.0f));
-      addPoint(vec3(-1.0f,-1.0f, 1.0f), vec2(5.0f, 3.0f));
-      EndPrimitive();
-    })", R"(
+      if(blockType[0] == 0U) return;
+      uint mask = faceBlocked[0];
+      // +Y face
+      if(!isBlocked(mask, 2)) {
+        addPoint(vec3( 1, 1, 1), vec2(1, 0));
+        addPoint(vec3(-1, 1, 1), vec2(0, 0));
+        addPoint(vec3( 1, 1,-1), vec2(1, 1));
+        addPoint(vec3(-1, 1,-1), vec2(0, 1));
+        EndPrimitive();
+      }
+      // -Z face
+      if(!isBlocked(mask, 5)) {
+        addPoint(vec3( 1, 1,-1), vec2(1, 1));
+        addPoint(vec3(-1, 1,-1), vec2(0, 1));
+        addPoint(vec3( 1,-1,-1), vec2(1, 2));
+        addPoint(vec3(-1,-1,-1), vec2(0, 2));
+        EndPrimitive();
+      }
+      // -Y face
+      if(!isBlocked(mask, 3)) {
+        addPoint(vec3( 1,-1,-1), vec2(1, 2));
+        addPoint(vec3(-1,-1,-1), vec2(0, 2));
+        addPoint(vec3( 1,-1, 1), vec2(1, 3));
+        addPoint(vec3(-1,-1, 1), vec2(0, 3));
+        EndPrimitive();
+      }
+      // +X face
+      if(!isBlocked(mask, 0)) {
+        addPoint(vec3( 1, 1, 1), vec2(2, 1));
+        addPoint(vec3( 1,-1, 1), vec2(1, 1));
+        addPoint(vec3( 1, 1,-1), vec2(2, 2));
+        addPoint(vec3( 1,-1,-1), vec2(1, 2));
+        EndPrimitive();
+      }
+      // +Z face
+      if(!isBlocked(mask, 4)) {
+        addPoint(vec3(-1, 1, 1), vec2(3, 1));
+        addPoint(vec3( 1, 1, 1), vec2(2, 1));
+        addPoint(vec3(-1,-1, 1), vec2(3, 2));
+        addPoint(vec3( 1,-1, 1), vec2(2, 2));
+        EndPrimitive();
+      }
+      // -X face
+      if(!isBlocked(mask, 1)) {
+        addPoint(vec3(-1, 1,-1), vec2(4, 1));
+        addPoint(vec3(-1, 1, 1), vec2(3, 1));
+        addPoint(vec3(-1,-1,-1), vec2(4, 2));
+        addPoint(vec3(-1,-1, 1), vec2(3, 2));
+        EndPrimitive();
+      }
+    }
+    )", R"(
     out vec4 FragColor;
     in gs2fs {
       vec2 texCoord;
@@ -104,12 +148,15 @@ int main() {
     uniform sampler2DArray texArray;
     uniform vec2 textureSize;
     void main() {
-      // Debug: output solid color to check geometry
-      // FragColor = vec4(1,0,0,1);
-      // Sample from texture array
-      vec2 uv = attrib.texCoord / textureSize;
-      float layerIndex = float(attrib.blockType-1U);
-      FragColor = vec4(vec3(texture(texArray, vec3(uv, layerIndex))),1.0f);
+      vec2 texCoord = attrib.texCoord;
+      while(texCoord.x > 1.0f) {
+        FragColor = vec4(1); return;
+        texCoord.x -= 1.0f;
+      }
+      vec2 uv = texCoord / textureSize;
+      float layerIndex = float(attrib.blockType - 1U);
+      FragColor = texture(texArray, vec3(uv, layerIndex));
+      if(FragColor.r < 0.1f) FragColor=vec4(1);
     })"
   );
 
@@ -125,9 +172,6 @@ int main() {
     }
   }
 
-  GLuint VAO ; glGenVertexArrays(1, &VAO );
-  GLuint VBO ; glGenBuffers     (1, &VBO );
-  GLuint VBO2; glGenBuffers     (1, &VBO2);
   GLenum blockTypes[viewSize.x][viewSize.y][viewSize.z];
   for(int x = 0; x < viewSize.x; x++) {
     for(int y = 0; y < viewSize.y; y++) {
@@ -143,20 +187,26 @@ int main() {
     }
   }
 
+  unsigned char faceBlocked[viewSize.x][viewSize.y][viewSize.z] = {0};
+
+  GLuint VAO; glGenVertexArrays(1, &VAO);
+  GLuint VBO[3]; glGenBuffers  (3,  VBO);
   glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-      glBufferData(GL_ARRAY_BUFFER, cubeamount*3*sizeof(float), &positions[0][0][0], GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
+      glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW);
       ;
       glEnableVertexAttribArray(0);
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)(0));
-    glBindBuffer(GL_ARRAY_BUFFER, VBO2);
-      glBufferData(GL_ARRAY_BUFFER, cubeamount*sizeof(GLenum), blockTypes, GL_STATIC_DRAW);
+      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)(0));
+    glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);
+      glBufferData(GL_ARRAY_BUFFER, sizeof(blockTypes), blockTypes, GL_STATIC_DRAW);
       ;
       glEnableVertexAttribArray(1);
-      glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 1*sizeof(GLenum), (void*)(0));
+      glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, sizeof(GLenum), (void*)(0));
+    glBindBuffer(GL_ARRAY_BUFFER, VBO[2]);
+      glBufferData(GL_ARRAY_BUFFER, sizeof(faceBlocked), faceBlocked, GL_STATIC_DRAW);
       ;
-      const GLenum _tmp[1] = {0U};
-      glBufferSubData(GL_ARRAY_BUFFER, (&blockTypes[2][2][2]-&blockTypes[0][0][0])*sizeof(GLenum), sizeof(GLenum), _tmp);
+      glEnableVertexAttribArray(2);
+      glVertexAttribIPointer(2, 1, GL_UNSIGNED_BYTE, sizeof(unsigned char), (void*)(0));
     glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(0);
 
@@ -164,10 +214,10 @@ int main() {
   glGenTextures(1, &textureID);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D_ARRAY, textureID);
-  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  // glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGBA8, 4, 12, 2);
   const unsigned char imgs[2][3*4*12] = {
@@ -184,28 +234,21 @@ int main() {
 
   while(!window.shouldClose()) {
     window.newFrame();
-    window.clearDevice(0.2f, 1.0f);
+    window.clearDevice(0.2f, 1);
     window.clearDepth();
     window.applyCursorMode();
 
     {
-      glm::vec3 move(0.0f);
+      glm::vec3 move(0);
       if(window.keyPressed(GLFW_KEY_R)) { camera = startCamera; }
-      if(window.keyPressed(GLFW_KEY_W)) { move += glm::vec3( 0.0f, 0.0f,-1.0f); }
-      if(window.keyPressed(GLFW_KEY_S)) { move += glm::vec3( 0.0f, 0.0f, 1.0f); }
-      if(window.keyPressed(GLFW_KEY_A)) { move += glm::vec3(-1.0f, 0.0f, 0.0f); }
-      if(window.keyPressed(GLFW_KEY_D)) { move += glm::vec3( 1.0f, 0.0f, 0.0f); }
-      if(window.keyPressed(GLFW_KEY_SPACE)) { move += glm::vec3( 0.0f, 1.0f, 0.0f); }
-      if(window.keyPressed(GLFW_KEY_LEFT_SHIFT)) { move += glm::vec3( 0.0f,-1.0f, 0.0f); }
-      // if(window.keyPressed(GLFW_KEY_TAB)) { type = (type+1)%2; Sleep(300); std::out<<"type = "<<type<<"\n"; }
+      if(window.keyPressed(GLFW_KEY_W)) { move += glm::vec3( 0, 0,-1); }
+      if(window.keyPressed(GLFW_KEY_S)) { move += glm::vec3( 0, 0, 1); }
+      if(window.keyPressed(GLFW_KEY_A)) { move += glm::vec3(-1, 0, 0); }
+      if(window.keyPressed(GLFW_KEY_D)) { move += glm::vec3( 1, 0, 0); }
+      if(window.keyPressed(GLFW_KEY_SPACE)) { move += glm::vec3( 0, 1, 0); }
+      if(window.keyPressed(GLFW_KEY_LEFT_SHIFT)) { move += glm::vec3( 0,-1, 0); }
       camera.move(move, window.frame.dt);
     }
-
-    // switch(type) {
-    //     case 0: FBO .use(); break;
-    //     case 1: FBO2.use(); break;
-    // }
-    // window.clearDevice(0.1f, 1.0f);
 
     glEnable(GL_DEPTH_TEST);
     glBindVertexArray(VAO);
