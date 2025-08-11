@@ -1,6 +1,7 @@
 #include <iostream>
 #include <Eigen/Dense>
 #include <graphics.h>
+#include <thread>
 using namespace Eigen;
 //#include <cmath>
 using namespace std;
@@ -272,9 +273,11 @@ public:
   const uint layerSizes[depth] = { 9, 36, 18, 9 };
   MatrixXf mats[depth-1];
   float activeFunc(float x) {
+    // return x;
     return x / sqrt(1+x*x);
   }
   float derivation(float x) {
+    // return 1;
     return 1 / (1+x*x) / sqrt(1+x*x);
   }
   AI() {
@@ -321,26 +324,32 @@ public:
         answer(i, 0) = (i == maxId) ? 1.0f : 0.0f;
       }
     }
-    float deff = (layers[depth-1]-answer).squaredNorm() / 2;
+    float deff = (layers[depth-1]-answer).squaredNorm();
     return deff;
   }
   float train(float alpha = 0.00001) {
-    MatrixXf layers[depth];
+    static constexpr int amount = 40;
+    MatrixXf samples[amount][depth];
     // for(int i=0; i<depth; ++i) {
     //   layers[i] = MatrixXf(layerSizes[i], 1);
     // }
-    layers[0] = MatrixXf(layerSizes[0], 1);
-    for(int i = 0; i < layerSizes[0]; ++i) {
-      layers[0](i, 0) = random01();
-    }
-    for(int i = 0; i < depth-1; ++i) {
-      layers[i+1] = mats[i] * layers[i];
-      for(int j = 0; j < layerSizes[i+1]; ++j) {
-        layers[i+1](j, 0) = activeFunc(layers[i+1](j, 0));
+    for(int index=0; index<amount; index++) {
+      auto &layers = samples[index];
+      layers[0] = MatrixXf(layerSizes[0], 1);
+      for(int i = 0; i < layerSizes[0]; ++i) {
+        layers[0](i, 0) = random01();
+      }
+      for(int i = 0; i < depth-1; ++i) {
+        layers[i+1] = mats[i] * layers[i];
+        for(int j = 0; j < layerSizes[i+1]; ++j) {
+          layers[i+1](j, 0) = activeFunc(layers[i+1](j, 0));
+        }
       }
     }
-    MatrixXf answer(layerSizes[depth-1], 1);
-    {
+    MatrixXf derivation(layerSizes[depth-1], 1);
+    for(int index=0; index<amount; index++) {
+      const auto &layers = samples[index];
+      MatrixXf answer(layerSizes[depth-1], 1);
       int maxId = 0;
       float max = layers[depth-1](0, 0);
       for(int i = 1; i < layerSizes[depth-1]; ++i) {
@@ -352,19 +361,40 @@ public:
       for(int i = 0; i < layerSizes[depth-1]; ++i) {
         answer(i, 0) = (i == maxId) ? 1.0f : 0.0f;
       }
+      derivation += layers[depth-1] - answer;
     }
-    MatrixXf derivation(layerSizes[depth-1], 1);
-    derivation = layers[depth-1] - answer;
+    derivation /= amount;
     //cout << derivation.squaredNorm() << "\n";
-    const float deff = derivation.squaredNorm();// / layerSizes[depth-1];
+    const float deff = derivation.squaredNorm();
     for(int i = depth-2; i >= 0; --i) {
-      const MatrixXf der = derivation;
+      const MatrixXf der = derivation; //size[i+1]
       derivation.resize(layerSizes[i], 1);
-      for(int j = 0; j < layerSizes[i]; ++j) {
-        derivation(j, 0) = - der.col(0).dot(mats[i].col(j)) / mats[i].col(j).squaredNorm();
+      //derivation.Zero();
+      for(int j=0; j < layerSizes[i]; ++j) {
+        derivation(j, 0) = 0;
       }
-      for(int j = 0; j < layerSizes[i]; ++j) {
-        mats[i].col(j) -= der / notZero(layers[i](j, 0)) * alpha;
+      for(int index=0; index<amount; index++) {
+        auto &layers = samples[index];
+        MatrixXf temp(layerSizes[i], 1);
+        for(int j=0; j<layerSizes[i]; j++) {
+          for(int k=0; k<layerSizes[i+1]; k++) {
+            temp(j,0) += - 2 * (der(k,0) - layers[i+1](k,0)) * this->derivation(layers[i+1](k,0));
+          }
+          derivation(j,0) -= deff / temp(j,0);
+        }
+        // for(int j = 0; j < layerSizes[i]; ++j) {
+        //   derivation(j, 0) += - der.col(0).dot(mats[i].col(j)) / mats[i].col(j).squaredNorm();
+        // }
+      }
+      derivation /= amount;
+      for(int index=0; index<amount; index++) {
+        auto &layers = samples[index];
+        for(int j=0; j < layerSizes[i]; ++j) {
+          for(int k=0; k < layerSizes[i+1]; ++k) {
+            // mats[i].col(j) -= der / notZero(layers[i](j, 0)) * alpha;
+            mats[i](k, j) -= der(k,0) / notZero(layers[i](j,0)) / this->derivation(layers[i+1](k,0)) * alpha;
+          }
+        }
       }
     }
     return deff;
@@ -397,33 +427,35 @@ void drawLineChart(int x, int y, int w, int h, int pos, const vector<float> &dat
 }
 
 int main() {
-  ege::initgraph(640, 480);
-  ege::setcolor(ege::WHITE);
-  ege::setbkcolor(ege::BLACK);
-  ege::setfillcolor(ege::GRAY);
-  ege::cleardevice();
+  // thread trainning_thread;
+  // ege::initgraph(640, 480);
+  // ege::setcolor(ege::WHITE);
+  // ege::setbkcolor(ege::BLACK);
+  // ege::setfillcolor(ege::GRAY);
+  // ege::cleardevice();
   AI ai;
   srand(time(nullptr));
-  vector<float> graph;
+  // vector<float> graph;
   train:
   float minDeff = 1000000.0f;
   for(int i = 0; 1; ++i) {
-    const float deff = ai.train(0.0001);
+    const float deff = ai.train(0.00003);
     if(deff < minDeff) {
       minDeff = deff;
-      cout << i << " " << minDeff << "\n";
-      graph.push_back(minDeff);
-      cout << "Graph size: " << graph.size() << "\n";
-      for(const auto &val : graph) {
-        cout << val << " ";
-      }
-      cout << "\n";
+      printf("%d %1.5f\n", i, minDeff);
+      // cout << i << " " << minDeff << "\n";
+      // graph.push_back(minDeff);
+      // cout << "Graph size: " << graph.size() << "\n";
+      // for(const auto &val : graph) {
+      //   cout << val << " ";
+      // }
+      // cout << "\n";
       //cout << "Min deff: " << minDeff << "\n";
-      ege::cleardevice();
-      ege::xyprintf(10, 10, "%.6f", minDeff);
-      drawLineChart(10, 30, 620, 440, 0, graph);
-      ege::delay_ms(0);
-      if(minDeff < 0.001f) {
+      // ege::cleardevice();
+      // ege::xyprintf(10, 10, "%.6f", minDeff);
+      // drawLineChart(10, 30, 620, 440, 0, graph);
+      // ege::delay_ms(0);
+      if(minDeff < 0.0001f) {
         break;
       }
     }

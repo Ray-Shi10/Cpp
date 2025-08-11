@@ -35,6 +35,10 @@ int main() {
     62,39,35,
     121,85,72,
   };
+  for(int i: color) {
+    printf("%3x ", i);
+  }
+  cout << "\n";
   for(int i: id) {
     i--;
     cout << color[3*i] << ","

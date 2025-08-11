@@ -108,7 +108,8 @@
         "mprealsupport": "cpp",
         "matrixfunctions": "cpp",
         "nonlinearoptimization": "cpp",
-        "dense": "cpp"
+        "dense": "cpp",
+        "queue": "cpp"
     },
     "cmake.sourceDirectory": "C:/Users/ray_s/OneDrive/Ray/C++/ege/eigen-3.4.0"
 }

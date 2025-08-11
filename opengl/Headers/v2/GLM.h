@@ -32,7 +32,7 @@ namespace glm {
         std::string s = "(";
         char tmp[10];
         for(int i=0; i<n; i++) {
-            sprintf(tmp, "%02.3f", v[i]);
+            sprintf(tmp, "%03.3f", v[i]);
             if(tmp[0] != '-') s += ' ';
             s += tmp;
             if(i<n-1) s += ", ";

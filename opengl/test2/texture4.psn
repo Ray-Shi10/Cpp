@@ -1,0 +1,57 @@
+case_sensitive //;
+sprite_size 4
+nokeyboard
+
+OBJECTS
+
+background .; transparent
+
+grassBlock 0
+transparent #33691e #689f38 #5d4037 #3e2723 #795548
+1212
+2121
+1121
+2212
+2525
+4354
+3434
+4343
+4444
+4434
+3444
+4443
+translate: down:3
+
+soilBlock 1
+transparent #5d4037 #3e2723
+2212
+1222
+2212
+2122
+2221
+2222
+1222
+2222
+2122
+2222
+1222
+2221
+translate: down:3
+
+//LEGEND
+
+COLLISIONLAYERS
+
+background
+grassBlock soilBlock
+
+LEVELS
+..................
+000000000000000000
+..................
+..................
+111111111111111111
+..................
+..................
+111111111111111111
+..................

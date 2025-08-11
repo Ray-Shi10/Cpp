@@ -8,9 +8,11 @@
 int main() {
   using std::vector;
   initGLFW(4,6);
-  Window window("Test", glm::uvec2(800, 600), glm::vec2(1200, 800));
+  glm::vec2 screenSize(2000, 800);
+  Window window("Test", screenSize, glm::vec2(1000, 800));
   Camera camera(glm::vec3(0.0f, 3.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(800,600,1000),
           0.01f, 1000.0f, 3.0f, 0.005f, 0.0f);
+  glViewport(0, 0, screenSize.x, screenSize.y);
   glm::vec3 speed;
   const Camera startCamera = camera;
   window.setCursorMode(GLFW_CURSOR_DISABLED);
@@ -20,7 +22,8 @@ int main() {
       switch(key) {
         case GLFW_KEY_ESCAPE:
           window.window.active ^= 1;
-          std::cout << "Window active: " << window.window.active << "\n";
+          // glfwFocusWindow(window.window.active ? window.window.glfwWindow : nullptr);
+          // std::cout << "Window active: " << window.window.active << "\n";
           break;
         case GLFW_KEY_TAB:
           camera.pos = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -48,7 +51,7 @@ int main() {
   glfwSetWindowFocusCallback(window, make_function([&](GLFWwindow*, int focused) {
     window.window.active = focused;
     //window.mouse.entering = true;
-    std::debug << "Window focus: " << focused << "\n";
+    // std::debug << "Window focus: " << focused << "\n";
   }));
 
   glEnable(GL_DEPTH_TEST);
@@ -75,6 +78,12 @@ int main() {
     uniform mat4 camTrans;
     void addPoint(vec3 offset, vec2 texCoord) {
       gl_Position = camTrans * ( gl_in[0].gl_Position + vec4(offset/2, 0.0f) );
+      float depth = gl_Position.w;
+      gl_Position /= depth;
+      gl_Position.x /= 20.0f;
+      gl_Position.y /= 8.0f;
+      gl_Position.xy *= 8.0f;
+      gl_Position *= depth;
       attrib.blockType = attribs[0].blockType;
       attrib.texCoord = texCoord;
       EmitVertex();
@@ -125,10 +134,6 @@ int main() {
       }
     }
   }
-
-  GLuint VAO ; glGenVertexArrays(1, &VAO );
-  GLuint VBO ; glGenBuffers     (1, &VBO );
-  GLuint VBO2; glGenBuffers     (1, &VBO2);
   GLenum blockTypes[viewSize.x][viewSize.y][viewSize.z];
   for(int x = 0; x < viewSize.x; x++) {
     for(int y = 0; y < viewSize.y; y++) {
@@ -147,6 +152,10 @@ int main() {
       }
     }
   }
+
+  GLuint VAO ; glGenVertexArrays(1, &VAO );
+  GLuint VBO ; glGenBuffers     (1, &VBO );
+  GLuint VBO2; glGenBuffers     (1, &VBO2);
 
   glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -187,11 +196,117 @@ int main() {
     shader1.set("textureSize", glm::vec2(1, 3));
   shader1.unuse();
 
+  // --- FBO with Depth Attachment ---
+  GLuint fbo;
+  glGenFramebuffers(1, &fbo);
+  glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+  // Create color texture
+  GLuint fboColor;
+  glGenTextures(1, &fboColor);
+  glBindTexture(GL_TEXTURE_2D, fboColor);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 800, 600, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fboColor, 0);
+
+  // Create depth renderbuffer
+  GLuint rbo;
+  glGenRenderbuffers(1, &rbo);
+  glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, 800, 600);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
+  // glGenRenderbuffers(1, &fboDepth);
+  // glBindRenderbuffer(GL_RENDERBUFFER, fboDepth);
+  // glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, 800, 600);
+  // glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, fboDepth);
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+      std::cerr << "ERROR: Framebuffer is not complete!" << std::endl;
+  }
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  GLuint quadVAO = 0, quadVBO = 0;
+  float quadVertices[] = {
+      // positions   // texCoords
+       1.0f,  1.0f,  1.0f, 1.0f,
+      -1.0f,  1.0f,  0.0f, 1.0f,
+       1.0f, -1.0f,  1.0f, 0.0f,
+      -1.0f, -1.0f,  0.0f, 0.0f,
+  };
+  glGenVertexArrays(1, &quadVAO);
+  glGenBuffers(1, &quadVBO);
+  glBindVertexArray(quadVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
+  // Simple shader for displaying the FBO texture
+  ShaderProgram screenShader(R"(
+    layout(location = 0) in vec2 aPos;
+    layout(location = 1) in vec2 aTexCoord;
+    out vec2 TexCoord;
+    void main() {
+      gl_Position = vec4(aPos, 0.0, 1.0);
+      TexCoord = aTexCoord;
+    })", R"(
+    in vec2 TexCoord;
+    out vec4 FragColor;
+    uniform sampler2D screenTexture;
+    uniform sampler2D screenDepth;
+    void main() {
+      vec3 color = texture(screenTexture, TexCoord).rgb;
+      float depth = texture(screenDepth, TexCoord).r;
+      // color = vec3(1.0f) - color;
+      // FragColor = vec4(vec3(depth), 1.0f);
+      FragColor = vec4(color, 1.0f);
+    })"
+  );
+  screenShader.use();
+    screenShader.set("screenTexture", 1);
+    screenShader.set("screenDepth", 2);
+  screenShader.unuse();
+
+  float cursor[] = {
+    -1.0f, 0.0f,    1.0f, 0.0f,
+     0.0f, 1.0f,    0.0f,-1.0f,
+  };
+  GLuint VAO_cursor;
+  glGenVertexArrays(1, &VAO_cursor);
+  glBindVertexArray(VAO_cursor);
+  GLuint VBO_cursor;
+  glGenBuffers(1, &VBO_cursor);
+  glBindBuffer(GL_ARRAY_BUFFER, VBO_cursor);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(cursor), cursor, GL_DYNAMIC_DRAW);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
+  ShaderProgram cursorShader(R"(
+    layout(location = 0) in vec2 pos;
+    uniform vec2 screenSize;
+    void main() {
+      // vec2 screenSize = vec2(1200.0f, 800.0f); // Replace with actual screen size
+      gl_Position = vec4(pos/screenSize*min(screenSize.x,screenSize.y)/25.0f, 0.0f, 1.0f);
+    })", R"(
+    out vec4 FragColor;
+    void main() {
+      FragColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    })"
+  );
+  glLineWidth(2.0f);
+
   while(!window.shouldClose()) {
-    window.newFrame();
-    window.clearDevice(0.2f, 1.0f);
-    window.clearDepth();
     window.applyCursorMode();
+    window.newFrame();
+    // window.clearDevice(0.2f, 1.0f);
+    // window.clearDepth();
 
     {
       glm::vec3 force(0.0f, -0.05f, 0.0f);
@@ -207,7 +322,7 @@ int main() {
         // std::cout << camera.pos.y << "\n";
         if(camera.pos.y < 2.50001f) {
           moveF += glm::vec3(0,jumpSpeed,0);
-          std::cout << camera.pos.y << " Jumping!\n";
+          // std::cout << camera.pos.y << " Jumping!\n";
         } else {
           // std::cout << "You can't jump while in the air!\n";
         }
@@ -233,19 +348,48 @@ int main() {
       //camera.dir.y = 0.0f;
     }
 
-    // switch(type) {
-    //     case 0: FBO .use(); break;
-    //     case 1: FBO2.use(); break;
-    // }
-    // window.clearDevice(0.1f, 1.0f);
-
     glEnable(GL_DEPTH_TEST);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    // glViewport(0, 0, 800, 600);
+    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glBindVertexArray(VAO);
       shader1.use();
         shader1.set("camTrans", camera.getMatrix());
         //shader1.set("camTrans", glm::mat4x4(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1));
         glDrawArrays(GL_POINTS, viewSize.y*viewSize.z+viewSize.z+1, viewSize.x*viewSize.y*viewSize.z-2*viewSize.y*viewSize.z-2*viewSize.z-2);
       shader1.unuse();
+    glBindVertexArray(0);
+    float _midDepth[1];
+    glReadPixels(screenSize.x/2, screenSize.y/2, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, _midDepth);
+    // float midDepth = camera.znear + (camera.zfar-camera.znear)*_midDepth[0];
+    float midDepth = (2.0 * camera.znear * camera.zfar) / (camera.zfar + camera.znear - (_midDepth[0] * 2 - 1) * (camera.zfar - camera.znear));
+    // printf("Mid Depth: %03.3f ( %.4f )\n", midDepth, _midDepth[0]);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // After rendering to FBO, render its color texture to the screen
+    // --- Add after glBindFramebuffer(GL_FRAMEBUFFER, 0); ---
+    // Setup a simple fullscreen quad VAO/VBO (once, outside the loop)
+    window.clearDevice(0.2f, 1.0f);
+    glDisable(GL_DEPTH_TEST);
+    glBindVertexArray(quadVAO);
+      screenShader.use();
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, fboColor);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D_ARRAY, rbo);
+        // glBindVertexArray(quadVAO);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+      screenShader.unuse();
+    glBindVertexArray(0);
+
+    glDisable(GL_DEPTH_TEST);
+    glBindVertexArray(VAO_cursor);
+      cursorShader.use();
+        // cursorShader.set("screenSize", glm::vec2(window.window.size.x, window.window.size.y));
+        cursorShader.set("screenSize", screenSize);
+        glDrawArrays(GL_LINES, 0, 4);
+      cursorShader.unuse();
     glBindVertexArray(0);
 
     window.swapBuffers();
