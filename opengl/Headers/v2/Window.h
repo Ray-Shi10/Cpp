@@ -80,6 +80,11 @@ public:
     static Window &currentContext() { return *(Window*)(glfwGetWindowUserPointer(glfwGetCurrentContext())); }
     static Window &currentContext(GLFWwindow *window) { return *(Window*)(glfwGetWindowUserPointer(window)); }
     static Window &currentContext(Window &newWindow) { return currentContext(newWindow.window.glfwWindow); }
+    glm::uvec2 &getSize() {
+        glfwGetWindowSize(window.glfwWindow, (int*)&window.size.x, (int*)&window.size.y);
+        return window.size;
+    }
+    void viewPort() { glViewport(0,0,window.size.x,window.size.y); }
 };
 bool Window::__first__ = true;
 

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <Eigen/Dense>
 #include <graphics.h>
 #include <thread>
@@ -290,6 +291,21 @@ public:
       }
     }
   }
+  MatrixXf ans(const MatrixXf &in) {
+    MatrixXf answer(layerSizes[depth-1], 1);
+    int maxId = 0;
+    float max = -10000000.0f;
+    for(int i = 0; i < layerSizes[0]; ++i) {
+      if(max < in(i,0)) {
+        max = in(i,0);
+        maxId = i;
+      }
+    }
+    for(int i = 0; i < layerSizes[0]; ++i) {
+      answer(i, 0) = (i == maxId) ? 1.0f : 0.0f;
+    }
+    return answer;
+  }
   MatrixXf exec(const MatrixXf &in) {
     MatrixXf layers[depth];
     layers[0] = in;
@@ -313,14 +329,14 @@ public:
     MatrixXf answer(layerSizes[depth-1], 1);
     {
       int maxId = 0;
-      float max = layers[depth-1](0, 0);
-      for(int i = 1; i < layerSizes[depth-1]; ++i) {
-        if(layers[depth-1](i, 0) > max) {
-          max = layers[depth-1](i, 0);
+      float max = layers[0](0, 0);
+      for(int i = 1; i < layerSizes[0]; ++i) {
+        if(layers[0](i, 0) > max) {
+          max = layers[0](i, 0);
           maxId = i;
         }
       }
-      for(int i = 0; i < layerSizes[depth-1]; ++i) {
+      for(int i = 0; i < layerSizes[0]; ++i) {
         answer(i, 0) = (i == maxId) ? 1.0f : 0.0f;
       }
     }
@@ -328,7 +344,7 @@ public:
     return deff;
   }
   float train(float alpha = 0.00001) {
-    static constexpr int amount = 40;
+    static constexpr int amount = 50;
     MatrixXf samples[amount][depth];
     // for(int i=0; i<depth; ++i) {
     //   layers[i] = MatrixXf(layerSizes[i], 1);
@@ -349,16 +365,16 @@ public:
     MatrixXf derivation(layerSizes[depth-1], 1);
     for(int index=0; index<amount; index++) {
       const auto &layers = samples[index];
-      MatrixXf answer(layerSizes[depth-1], 1);
+      MatrixXf answer(layerSizes[0], 1);
       int maxId = 0;
-      float max = layers[depth-1](0, 0);
-      for(int i = 1; i < layerSizes[depth-1]; ++i) {
-        if(layers[depth-1](i, 0) > max) {
-          max = layers[depth-1](i, 0);
+      float max = layers[0](0, 0);
+      for(int i = 1; i < layerSizes[0]; ++i) {
+        if(layers[0](i, 0) > max) {
+          max = layers[0](i, 0);
           maxId = i;
         }
       }
-      for(int i = 0; i < layerSizes[depth-1]; ++i) {
+      for(int i = 0; i < layerSizes[0]; ++i) {
         answer(i, 0) = (i == maxId) ? 1.0f : 0.0f;
       }
       derivation += layers[depth-1] - answer;
@@ -401,70 +417,107 @@ public:
   }
 };
 
-void drawLineChart(int x, int y, int w, int h, int pos, const vector<float> &data, int space=10, int padding=10) {
+void drawLineChart(int x, int y, int w, int h, const float *data, int n, int offset, int space) {
   float maxVal = data[0], minVal = data[0];
-  for(float val : data) {
+  for(int i=offset+1, id=0; i!=offset; i++, id++) {
+    if(i == n) i = -1;
+    const float val = data[i];
     if(val > maxVal) maxVal = val;
     if(val < minVal) minVal = val;
   }
-  const int n = data.size();
-  vector<ege::ege_point> points;
-  for(size_t i = 0; i < data.size(); ++i) {
+  // const int n = data.size();
+  ege::ege_point points[n];
+  for(int i=offset+1, id=0; i!=offset; i++, id++) {
+    if(i == n) i = -1;
     ege::ege_point p;
-    p.x = w + (i-n) * space + pos;
+    p.x = w + (id-n) * space;
     p.y = h - (data[i] - minVal) / (maxVal - minVal) * h;
-    points.push_back(p);
+    points[x] = p;
   }
   ege::PIMAGE img = ege::newimage(w, h);
   ege::setbkcolor(ege::GRAY, img);
   //ege::setfillcolor(ege::GRAY);
   //ege::fillrect(x-padding, y+padding, x+w+padding, y+h+padding);
-  ege::setcolor(ege::BLACK);
-  for(size_t i = 1; i < points.size(); ++i) {
+  ege::setcolor(ege::WHITE);
+  for(size_t i = 1; i < n; ++i) {
     ege::line(points[i-1].x, points[i-1].y, points[i].x, points[i].y, img);
   }
   ege::putimage(x, y, img);
+  ege::delimage(img);
 }
 
 int main() {
-  // thread trainning_thread;
-  // ege::initgraph(640, 480);
-  // ege::setcolor(ege::WHITE);
-  // ege::setbkcolor(ege::BLACK);
-  // ege::setfillcolor(ege::GRAY);
-  // ege::cleardevice();
+  // thread trainning_thread([](){
+  //   ;
+  // });
+  // trainning_thread.join();
+  ege::initgraph(640, 480);
+  ege::setcolor(ege::WHITE);
+  ege::setbkcolor(ege::BLACK);
+  ege::setfillcolor(ege::GRAY);
+  ege::cleardevice();
+  // freopen("console.txt", "w", stdout);
+  // fstream aiData("ai.dat", ios::in | ios::out | ios::trunc);
+  auto &aiData = cout;
+  // aiData << 123 << "\naabc\n";
+  // aiData << "AI data:\n";
   AI ai;
   srand(time(nullptr));
   // vector<float> graph;
-  train:
+train:
   float minDeff = 1000000.0f;
-  for(int i = 0; 1; ++i) {
-    const float deff = ai.train(0.00003);
+  {
+    int depth;
+    cin >> depth;
+    if(depth) {
+      int layerSizes[depth];
+      for(int i=0; i<depth; i++) {
+        cin >> layerSizes[i];
+      }
+      for(int i=0; i<depth-1; i++) {
+        for(int j=0; j<layerSizes[i]; j++) {
+          for(int k=0; k<layerSizes[i+1]; k++) {
+            cin >> ai.mats[i](k,j);
+          }
+        }
+      }
+      minDeff = -1;
+    }
+  }
+  float graph[101] = {0};
+  int offset = 0;
+  for(int i = 0; minDeff>=0.0001f; ++i) {
+    const float deff = ai.train(0.00002);
     if(deff < minDeff) {
       minDeff = deff;
       printf("%d %1.5f\n", i, minDeff);
-      // cout << i << " " << minDeff << "\n";
-      // graph.push_back(minDeff);
-      // cout << "Graph size: " << graph.size() << "\n";
-      // for(const auto &val : graph) {
-      //   cout << val << " ";
+      ege::xyprintf(20, 10, "now min: %1.5f(%d)", minDeff, i);
+      // if(minDeff < 0.001f) {
+      //   break;
       // }
-      // cout << "\n";
-      //cout << "Min deff: " << minDeff << "\n";
-      // ege::cleardevice();
-      // ege::xyprintf(10, 10, "%.6f", minDeff);
-      // drawLineChart(10, 30, 620, 440, 0, graph);
-      // ege::delay_ms(0);
-      if(minDeff < 0.0001f) {
-        break;
+    }
+    if(!(i & 0xff)) {
+      offset++;
+      if(offset == 100) offset = 0;
+      graph[offset] = deff;
+      // drawLineChart(20, 50, 600, 400, graph, 100, offset, 6);
+    }
+    ege::delay_ms(0);
+  }
+  if(minDeff > 0) {
+    aiData << AI::depth << " ";
+    for(int i=0; i<AI::depth; i++) {
+      aiData << ai.layerSizes[i] << " ";
+    }
+    for(int i=0; i<AI::depth-1; i++) {
+      // aiData << ai.mats[i];
+      for(int j=0; j<ai.layerSizes[i]; j++) {
+        for(int k=0; k<ai.layerSizes[i+1]; k++) {
+          aiData << ai.mats[i](k,j) << " ";
+        }
       }
     }
-    if(!(i&0x7fff))
-    {
-      cout << i << " " << minDeff << "\n";
-    }
   }
-  //cout << "Min deff: " << minDeff << "\n";
   while(true) {
     MatrixXf in(9, 1);
     for(int i = 0; i < 9; ++i) {
@@ -480,23 +533,29 @@ int main() {
       case 2:
         goto train;
       case 3: {
-        float minDeff = 1000000.0f;
-        MatrixXf best = MatrixXf::Zero(9, 1);
-        for(int i=0; i<100000; i++) {
-          MatrixXf in = MatrixXf::Random(9,1);
-          const float deff = ai.deff(in);
-          if(deff < minDeff) {
-            minDeff = deff;
-            best = in;
-          }
-        }
-        cout << minDeff << "\n";
+        // float minDeff = 1000000.0f;
+        // MatrixXf best = MatrixXf::Zero(9, 1);
+        // for(int i=0; i<100000; i++) {
+          in = MatrixXf::Random(9,1);
+          // const float deff = ai.deff(in);
+          // if(deff < minDeff) {
+          //   minDeff = deff;
+          //   best = in;
+          // }
+        // }
+        // cout << deff << "\n";
       }
-      _continue = 1;
+      // _continue = 1;
       default:;
     }
-    if(_continue) continue;
-    cout << ai.exec(in) << "\t" << ai.deff(in) << "\n";
+    // if(_continue) continue;
+    {
+      MatrixXf res = ai.exec(in), ans = ai.ans(in);
+      for(int i=0; i<ai.layerSizes[0]; i++) {
+        printf("%s%02.9f %s%02.9f %.0f\n", in(i,0)>=0?" ":"", in(i,0), res(i,0)>=0?" ":"", res(i,0), ans(i,0));
+      }
+      printf("%.16f\n", ai.deff(in));
+    }
   }
   return 0;
 }

@@ -10,6 +10,14 @@ public:
     glm::real znear, zfar;
     Camera(glm::vec3 pos, glm::vec3 dir, glm::vec3 view, glm::real znear, glm::real zfar, glm::real sens_move, glm::real sens_turn, glm::real sens_zoom) :
         pos(pos), dir(dir), view(view), znear(znear), zfar(zfar), sens_move(sens_move), sens_turn(sens_turn), sens_zoom(sens_zoom) {}
+    glm::mat4 getLightTrace() const {
+        glm::mat4 obj(1.0f);
+        obj *= glm::rotateZl(dir.z);
+        obj *= glm::rotateYl(dir.y);
+        obj *= glm::rotateXl(dir.x);
+        obj[3] = glm::vec4(pos, 1.0f);
+        return obj;
+    }
     glm::mat4 getView() const {
         glm::mat4 view(1.0f);
         view *= glm::rotateXl(-dir.x);
