@@ -9,6 +9,8 @@
 				"-fdiagnostics-color=always",
 				"-g", "${file}",
 				"-o", "${fileDirname}\\${fileBasenameNoExtension}.exe",
+				// "-g", "${fileDirname}\\main.cpp",
+				// "-o", "${fileDirname}\\main.exe",
 				"-IC:\\tools\\ege\\include",
 				"-I${workspaceFolder}\\Headers",
 				"-LC:\\tools\\ege\\lib\\mingw64\\mingw-w64-gcc-8.1.0-x86_64",

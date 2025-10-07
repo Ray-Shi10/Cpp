@@ -8,6 +8,10 @@
             "args": [
                 "${fileDirname}\\${fileBasenameNoExtension}.cpp"
             ],
+            // "program": "${fileDirname}\\main.exe",
+            // "args": [
+            //     "${fileDirname}\\main.cpp"
+            // ],
             "stopAtEntry": false,
             "cwd": "C:/tools/msys64/mingw64/bin",
             "environment": [],
