@@ -3,23 +3,21 @@
 
 #include "vec2.hpp"
 #include "color.hpp"
+#include "obj.hpp"
 #include <string>
 #include <ege.h>
 
-class Screen {
-  using str = std::string;
+class Canvas {
  public:
   vec size;
   vec pos;
   float scale;
-  str title;
   ege::PIMAGE img = nullptr;
   const float aa = 2; // anti-aliasing factor
-  Screen(
+  Canvas(
     float width, float height,
-    const vec& pos=vec(0, 0), float scale=1,
-    const str& title="Physics Engine 2D"
-  ) : size(width/2, height/2), pos(pos), scale(scale), title(title) {
+    const vec& pos=vec(0, 0), float scale=1
+  ) : size(width/2, height/2), pos(pos), scale(scale) {
     img = ege::newimage(width*aa, height*aa);
     ege::setcolor(Color(255), img);
     ege::setlinewidth(1*aa, img);
@@ -41,16 +39,12 @@ class Screen {
   vec projVec(const vec& p) const {
     return p * scale * aa * vec(1,-1);
   }
-  void setcaption(const str& title) {
-    this->title = title;
-    ege::setcaption(title.c_str());
-  }
-  void circle(vec o, vec r, bool fill) const {
+  void circle(vec o, vec r, bool fill=true) const {
     o = project(o); r = projVec(r); o -= r; r *= 2;
     if(fill) ege::ege_fillellipse(o.x, o.y, r.x, r.y, img);
     else ege::ege_ellipse(o.x, o.y, r.x, r.y, img);
   }
-  void rectangle(vec o, vec r, bool fill) const {
+  void rect(vec o, vec r, bool fill=true) const {
     r = abs(projVec(r)); o = project(o); o -= r; r *= 2;
     if(fill) ege::ege_fillrect(o.x, o.y, r.x, r.y, img);
     else ege::ege_rectangle(o.x, o.y, r.x, r.y, img);
@@ -60,8 +54,27 @@ class Screen {
     ege::line(p1.x, p1.y, p2.x, p2.y, img);
   }
   vec rand(vec padding=0) const { return vec::rand() * (size - padding) * scale + pos; }
-  void render() const {
-    ege::putimage(0, 0, size.x*2, size.y*2, img, 0, 0, aa*size.x*2, aa*size.y*2);
+  void render(ege::PIMAGE img = NULL) const {
+    ege::putimage(img, 0, 0, size.x*2, size.y*2, this->img, 0, 0, aa*size.x*2, aa*size.y*2);
+  }
+  void draw(Collision *collision, const vec &pos) {
+    switch(collision->shape) {
+      case Shape::Circle: {
+        Circle &c = collision->as<Circle>();
+        circle(pos, c.radius, true);
+        break;
+      }
+      case Shape::Rect: {
+        Rect &r = collision->as<Rect>();
+        rect(pos, r.size, true);
+        break;
+      }
+    }
+  }
+  void draw(Object *obj) {
+    // for(Collision *c : obj->collisions) {
+      draw(obj->collision, obj->trans.pos);
+    // }
   }
 };
 

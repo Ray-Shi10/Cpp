@@ -5,17 +5,21 @@ bool pause=1;
 #include "phyEngine2D.h"
 // using namespace std;
 
-void initWorld(World& world, std::vector<Color>& colors, Screen& screen) {
+void initWorld(World& world, std::vector<Color>& colors, Canvas& screen) {
   {
     const float R = 8e4, pad = 10;
-    // world.add(new Circle(0,  screen.size.y-pad+R, R, 0)); // U
-    // world.add(new Circle(0, -screen.size.y+pad-R, R, 0)); // D
-    // world.add(new Circle( screen.size.x-pad+R, 0, R, 0)); // L
-    // world.add(new Circle(-screen.size.x+pad-R, 0, R, 0)); // R
-    world.add(new Rect(vec(0,  screen.size.y-pad), vec(screen.size.x, pad), 0)); // U
-    world.add(new Rect(vec(0, -screen.size.y+pad), vec(screen.size.x, pad), 0)); // D
-    world.add(new Rect(vec( screen.size.x-pad, 0), vec(pad, screen.size.y), 0)); // L
-    world.add(new Rect(vec(-screen.size.x+pad, 0), vec(pad, screen.size.y), 0)); // R
+    world.add(vec(0,  screen.size.y-pad), 0.f, Shape::Rect, vec(screen.size.x, pad)); // U
+    world.add(vec(0, -screen.size.y+pad), 0.f, Shape::Rect, vec(screen.size.x, pad)); // D
+    world.add(vec( screen.size.x-pad, 0), 0.f, Shape::Rect, vec(pad, screen.size.y)); // L
+    world.add(vec(-screen.size.x+pad, 0), 0.f, Shape::Rect, vec(pad, screen.size.y)); // R
+    // world.add(new Object(vec(0,  screen.size.y-pad), 0.f, new Rect(vec(screen.size.x, pad)))); // U
+    // world.add(new Object(vec(0, -screen.size.y+pad), 0.f, new Rect(vec(screen.size.x, pad)))); // D
+    // world.add(new Object(vec( screen.size.x-pad, 0), 0.f, new Rect(vec(pad, screen.size.y)))); // L
+    // world.add(new Object(vec(-screen.size.x+pad, 0), 0.f, new Rect(vec(pad, screen.size.y)))); // R
+    // world.add(vec(0, -screen.size.y+pad-R), 0.f, Shape::Circle, R); // D
+    // world.add(vec(0,  screen.size.y-pad+R), 0.f, Shape::Circle, R); // U
+    // world.add(vec( screen.size.x-pad+R, 0), 0.f, Shape::Circle, R); // L
+    // world.add(vec(-screen.size.x+pad-R, 0), 0.f, Shape::Circle, R); // R
     for(int i=0; i<world.objs.size(); i++) colors.push_back(Color(80));
   }
   {
@@ -28,25 +32,16 @@ void initWorld(World& world, std::vector<Color>& colors, Screen& screen) {
   for(int i=0; i<30; i++) {
     const float size = rand()%20 + 10;
     const vec pos = screen.rand(80);
-    Shape shape = rand()%2;
-    Object *obj;
-    // shape = Shape::CIRCLE;
-    switch(shape) {
-      case Shape::Circle:
-        obj = new Circle(pos, size);
-        break;
-      case Shape::Rect:
-        obj = new Rect(pos, vec::rand(.8,1.2)*size);
-        break;
-    }
-    bool ok = 1;
-    for(const auto o2 : world.objs) {
-      CollInfo info = obj->intersect(*o2);
-      if(info) {
-        i--; ok = 0; break;
-      }
-    }
-    if(!ok) continue;
+    auto shape = Shape(rand()%2);
+    auto *obj = new Object(pos, shape, size);
+    // bool ok = 1;
+    // for(const auto o2 : world.objs) {
+    //   auto info = obj->intersect(*o2);
+    //   if(info) {
+    //     i--; ok = 0; break;
+    //   }
+    // }
+    // if(!ok) continue;
     if(pos.y < -10 && !(rand()%2)) {
       obj->mass = 0;
       colors.push_back(Color(80));
@@ -68,7 +63,8 @@ void initWorld(World& world, std::vector<Color>& colors, Screen& screen) {
 
 int main() {
   World world;
-  Screen screen(800, 600);
+  Canvas screen(800, 600);
+  ege::setcaption("Physics Engine 2D");
   world.restitution = 0.5;
   world.damping = 0.98;
   world.minSpeed = 0;
@@ -87,22 +83,8 @@ int main() {
         if(traceId >= 0) { continue; }
         int id = -1;
         for(int i=0; i<world.objs.size()&&id<0; i++) {
-          switch(world.objs[i]->shape) {
-            case Shape::Circle: {
-              const Circle &c = world.objs[i]->as<Circle>();
-              if(c.pos.dist(pos) <= c.radius) {
-                id = i;
-              }
-              break;
-            }
-            case Shape::Rect: {
-              const Rect &r = world.objs[i]->as<Rect>();
-              const vec diff = pos - r.pos;
-              if(std::abs(diff.x) <= r.size.x && std::abs(diff.y) <= r.size.y) {
-                id = i;
-              }
-              break;
-            }
+          if(world.objs[i]->include(pos)) {
+            id = i;
           }
         }
         traceId = id;
@@ -135,12 +117,11 @@ int main() {
       }
     }
     if(mousedown[1]) {
-      Circle c = Circle(mousepos, 50, 0);
+      const float R = 100;
       for(const auto obj : world.objs) {
         if(obj->isStatic()) continue;
-        CollInfo info = c.intersect(*obj);
-        if(info) {
-          obj->speed += info.n * 400;
+        if(obj->trans.pos.dist(mousepos) < R) {
+          obj->speed += (obj->trans.pos - mousepos).normalize() * 250;
         }
       }
     }
@@ -162,26 +143,25 @@ int main() {
         case ege::key_X: {
           for(const auto obj : world.objs) {
             if(obj->isStatic()) continue;
-            obj->speed = obj->speed.normalize() * (
-              (obj->speed.length() + 15) * 15
+            obj->speed = obj->speed.pos.normalize() * (
+              (obj->speed.pos.length() + 15) * 15
             ) + vec::rand() * 35;
           }
         }
         case ege::key_Q: {
-          const vec pos = traceId == -1 ? mousepos : world.objs[traceId]->pos;
-          Circle* c = new Circle(pos, 120, 0);
+          const vec pos = traceId == -1 ? mousepos : world.objs[traceId]->trans.pos;
+          const float R = 120;
           for(const auto obj : world.objs) {
             if(obj->isStatic()) continue;
-            CollInfo info = c->intersect(*obj);
-            if(info) {
-              obj->speed += info.n * 1e3 * (2 - info.d/100);
+            if(obj->trans.pos.dist(pos) < R) {
+              obj->speed.pos += (obj->trans.pos - pos).normalize() * 400;
             }
           }
         }
       }
     }
     if(traceId != -1) { 
-      screen.pos = world.objs[traceId]->pos;
+      screen.pos = world.objs[traceId]->trans.pos;
       // screen.pos += (world.objs[traceId]->pos - screen.pos) * 5e-2;
     }
     if(!pause) world.step(1.0f/60.0f/(slow?3.5:1), 4);
@@ -189,23 +169,24 @@ int main() {
     // world.draw();
     for(int i=0; i<world.objs.size(); i++) {
       ege::setfillcolor(colors[i], screen.img);
-      world.objs[i]->draw(screen);
+      // world.objs[i]->draw(screen);
+      screen.draw(world.objs[i]);
       const auto o = world.objs[i];
-      screen.line(o->pos, o->pos + o->speed*.6);
+      screen.line(o->trans.pos, o->trans.pos + o->speed.pos*.6);
     }
     for(int i=0; i<world.objs.size(); i++) {
       if(i+1 != world.objs[i]->name) continue;
       char buf[10];
       sprintf(buf, "%d", world.objs[i]->name);
-      ege::outtextxy(screen.project(world.objs[i]->pos).x-5, screen.project(world.objs[i]->pos).y-5, buf, screen.img);
+      ege::outtextxy(screen.project(world.objs[i]->trans.pos).x-5, screen.project(world.objs[i]->trans.pos).y-5, buf, screen.img);
     }
-    for(const auto obj : world.objs) {
-      if(!obj->name) continue;
-      obj->hist_pos.push_back(obj->pos);
-      obj->hist_speed.push_back(obj->speed);
-    }
+    // for(const auto obj : world.objs) {
+    //   if(!obj->name) continue;
+    //   obj->hist_pos.push_back(obj->trans.pos);
+    //   obj->hist_speed.push_back(obj->speed.pos);
+    // }
     screen.render();
-    ege::setcolor(ege::WHITE);
+    ege::setcolor(ege::GRAY);
     ege::line(0, MousePos.y, screen.size.x*2, MousePos.y);
     ege::line(MousePos.x, 0, MousePos.x, screen.size.y*2);
     ege::outtextxy(MousePos.x+1, MousePos.y-16, (std::to_string(int(MousePos.x))+std::string(",")+std::to_string(int(MousePos.y))).c_str());

@@ -21,6 +21,10 @@ class World {
   void add(Object* obj) {
     objs.push_back(obj);
   }
+  template <typename ...Args>
+  void add(Args ...args) {
+    objs.push_back(new Object(args...));
+  }
   void step(float dt, int it=1) {
     const float damping = std::pow(this->damping, dt/it);
     for(int i=0; i<it; i++) _step(dt/it, damping);
@@ -35,10 +39,10 @@ class World {
   void _step(float dt, float damping) {
     for(auto obj : objs) {
       if(!obj->isStatic()) {
-        obj->speed += gravity * dt;
+        obj->speed.pos += gravity * dt;
         // obj->speed *= damping;
       }
-      obj->pos += obj->speed * dt;
+      obj->trans += obj->speed * dt;
     }
     
     const int n = objs.size();
@@ -46,20 +50,24 @@ class World {
       auto const o1 = objs[it1];
       for(int it2=it1+1; it2<n; it2++) {
         auto const o2 = objs[it2];
-        std::string _obj1 = o1->toStr(), _obj2 = o2->toStr();
-        CollInfo info = o1->intersect(*o2);
+        // std::string _obj1 = o1->toStr(), _obj2 = o2->toStr();
+        const auto info = o1->intersect(*o2);
         if(!info) continue;
         if(o1->isStatic() && o2->isStatic()) continue;
-        if((o2->speed-o1->speed).dot(info.n) > 0) continue;
+        if((o2->speed-o1->speed).pos.dot(info.n) > 0) continue;
+        // if(o1->collision->shape == Shape::Circle && o2->collision->shape == Shape::Rect ||
+        //    o1->collision->shape == Shape::Rect && o2->collision->shape == Shape::Circle) {
+        //   std::cout << "Circle-Rect Collision Detected: " << info << "  " << o1->name << "," << o2->name << "\n";
+        // }
         // info.d *= 1.1;
-        o1->pos -= info.n * info.d / (o1->mass + o2->mass) * o1->mass;
-        o2->pos += info.n * info.d / (o1->mass + o2->mass) * o2->mass;
+        o1->trans.pos -= info.n * info.d / (o1->mass + o2->mass) * o1->mass;
+        o2->trans.pos += info.n * info.d / (o1->mass + o2->mass) * o2->mass;
         // o1->pos -= info.n * info.d / 2;
         // o2->pos += info.n * info.d / 2;
-        const float j = -(1.8) * info.n.dot(o2->speed - o1->speed) / (o1->mass + o2->mass);
-        o1->speed -= info.n * j * o1->mass;
-        o2->speed += info.n * j * o2->mass;
-        info = o1->intersect(*o2);
+        const float j = -(1.95) * info.n.dot((o2->speed-o1->speed).pos) / (o1->mass + o2->mass);
+        o1->speed.pos -= info.n * j * o1->mass;
+        o2->speed.pos += info.n * j * o2->mass;
+        // info = o1->intersect(*o2);
         // if(info.d > 1e-2) {
         //   // std::cerr << "Warning: Post-collision intersection detected! d=" << info.d << std::endl;
         //   for(int i=0; i<o1->hist_pos.size(); i++) {
@@ -72,14 +80,14 @@ class World {
       }
     }
   }
-  void draw(Screen window) const {
-    for(auto obj : objs) obj->draw(window);
-  }
+  // void draw(Canvas window) const {
+  //   for(auto obj : objs) obj->draw(window);
+  // }
   void clear() {
     for(auto obj : objs) delete obj;
     objs.clear();
   }
-  void applyBoundaries(Object* obj);
+  // void applyBoundaries(Object* obj);
 };
 
 #endif // PHYSIC_WORLD_HPP
