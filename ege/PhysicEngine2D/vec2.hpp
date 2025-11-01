@@ -8,9 +8,9 @@ class Angle {
  public:
   float rad;
   constexpr Angle() : rad(0) {}
-  constexpr Angle(float rad) : rad(rad) {}
-  static constexpr Angle degrees(float deg) { return Angle(deg * PI / 180.0f); }
-  constexpr float degrees() const { return rad * 180.0f / PI; }
+  explicit constexpr Angle(float rad) : rad(rad) {}
+  static constexpr Angle deg(float deg) { return Angle(deg * PI / 180.0f); }
+  constexpr float deg() const { return rad * 180.0f / PI; }
   constexpr operator float() const { return rad; }
   constexpr bool operator==(const Angle& a) const { return rad == a.rad; }
   constexpr bool operator!=(const Angle& a) const { return rad != a.rad; }
@@ -28,7 +28,7 @@ class Angle {
     return os;
   }
   std::string toStr() const {
-    return "rad(" + std::to_string(rad) + ")";
+    return "rad(" + ::toStr(rad) + ")";
   }
 };
 class vec {
@@ -60,8 +60,9 @@ class vec {
   float dot(const vec& v) const { return x * v.x + y * v.y; }
   float length() const { return std::sqrt(norm()); }
   vec normalize() const { float len = length(); return len > 0 ? *this/len : vec(0, 0); }
-  float angle() const { return std::atan2(y, x); }
-  float angle(const vec& v) const { return std::acos(dot(v) / (length() * v.length())); }
+  Angle angle(const vec& v) const { return Angle(std::acos(dot(v) / (length() * v.length()))); }
+  Angle angle() const { return Angle(std::atan2(y, x)); }
+  static vec angle(float rad) { return vec(std::cos(rad), std::sin(rad)); }
   vec rot(const Angle& a) const {
     const float c = std::cos(a.rad), s = std::sin(a.rad);
     return vec(x * c - y * s, x * s + y * c);
@@ -79,7 +80,7 @@ class vec {
   static vec rand(float min, float max) { return vec::rand01() * (max - min) + min; }
   std::string toStr() const { return "(" + std::to_string(x) + ", " + std::to_string(y) + ")"; }
   vec sign() const { return vec(x==0?0:(x>0?1:-1), y==0?0:(y>0?1:-1)); }
-  vec perpendicular() const { return vec(-y, x); }
+  vec prep() const { return vec(-y, x); }
 };
 vec abs(const vec& v) { return vec(std::abs(v.x), std::abs(v.y)); }
 vec min(const vec& a, const vec& b) { return vec(std::fmin(a.x, b.x), std::fmin(a.y, b.y)); }

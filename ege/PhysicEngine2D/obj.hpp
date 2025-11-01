@@ -12,6 +12,7 @@ class Object {
  public:
   Trans trans, speed;
   float mass = 0; // inversed, 0 for static object
+  float inertia = 0; // rotational inertia
   // std::vector<Collision*> collisions;
   Collision *collision;
   float restitution = 0.99; // 碰撞恢复系数
@@ -37,17 +38,20 @@ class Object {
     Collision::Info result;
     const Collision *c1 = collision;
     const Collision *c2 = other.collision;
+    const Trans rel = other.trans - trans;
     // for(const Collision *c1 : collisions) {
     //   for(const Collision *c2 : other.collisions) {
-        Collision::Info info = c1->intersect(*c2, other.trans-trans);
+        const Collision::Info info = c1->intersect(*c2, rel);
         if(!result || info>result) result = info;
     //   }
     // }
+    result.p += trans;
+    result.n = result.n.rot(trans.angle);
     return result;
   }
   bool include(const vec& point) const {
     // for(const Collision *c : collisions) {
-      if(collision->include(point-trans.pos)) return true;
+      if(collision->include(point+trans)) return true;
     // }
     return false;
   }
@@ -60,7 +64,9 @@ class Object {
   }
   std::string toStr() const {
     std::string res =  "Object(trans=" + trans.toStr()
-       + ", mass=" + std::to_string(getMass());
+       + ", mass=" + std::to_string(getMass())
+       + ", inertia=" + std::to_string(inertia)
+       + ", speed=" + speed.toStr();
     // for(const Collision *c : collisions) {
       res += ", " + collision->toStr();
     // }

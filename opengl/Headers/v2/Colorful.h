@@ -15,8 +15,8 @@ namespace std {
         color_ostream(ostream &stream, byte r, byte g, byte b) : stream(stream), r(r), g(g), b(b) { init(); }
         color_ostream(ostream &stream, byte gray) : color_ostream(stream, gray, gray, gray) { init(); }
         template <typename T> color_ostream &operator<<(T value) { print(value); return *this; }
-        color_ostream operator<<(color_ostream const&stream) { return color_ostream(this->stream, stream.r, stream.g, stream.b); }
-        color_ostream operator<<(ostream &stream) { return color_ostream(stream, r, g, b); }
+        // color_ostream operator<<(color_ostream const&stream) { return color_ostream(this->stream, stream.r, stream.g, stream.b); }
+        // color_ostream operator<<(ostream &stream) { return color_ostream(stream, r, g, b); }
         color_ostream &operator<<(ostream&(*func)(ostream&)) { stream << setColor << func << "\033[0m"; return *this; }
         operator ostream&() { return stream; } operator ostream const&() const { return stream; } operator bool() { return true; }
         //template <typename T> using _print_func = void(*)(T); template <typename T> operator _print_func<T>() { return [](T value){(*this)<<vaule;}; }

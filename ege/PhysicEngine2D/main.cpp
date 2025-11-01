@@ -1,9 +1,8 @@
 #include <iostream>
 #include <cmath>
 #include <ege.h>
-bool pause=1;
+bool pause = 0;
 #include "phyEngine2D.h"
-// using namespace std;
 
 void initWorld(World& world, std::vector<Color>& colors, Canvas& screen) {
   {
@@ -12,10 +11,6 @@ void initWorld(World& world, std::vector<Color>& colors, Canvas& screen) {
     world.add(vec(0, -screen.size.y+pad), 0.f, Shape::Rect, vec(screen.size.x, pad)); // D
     world.add(vec( screen.size.x-pad, 0), 0.f, Shape::Rect, vec(pad, screen.size.y)); // L
     world.add(vec(-screen.size.x+pad, 0), 0.f, Shape::Rect, vec(pad, screen.size.y)); // R
-    // world.add(new Object(vec(0,  screen.size.y-pad), 0.f, new Rect(vec(screen.size.x, pad)))); // U
-    // world.add(new Object(vec(0, -screen.size.y+pad), 0.f, new Rect(vec(screen.size.x, pad)))); // D
-    // world.add(new Object(vec( screen.size.x-pad, 0), 0.f, new Rect(vec(pad, screen.size.y)))); // L
-    // world.add(new Object(vec(-screen.size.x+pad, 0), 0.f, new Rect(vec(pad, screen.size.y)))); // R
     // world.add(vec(0, -screen.size.y+pad-R), 0.f, Shape::Circle, R); // D
     // world.add(vec(0,  screen.size.y-pad+R), 0.f, Shape::Circle, R); // U
     // world.add(vec( screen.size.x-pad+R, 0), 0.f, Shape::Circle, R); // L
@@ -34,14 +29,16 @@ void initWorld(World& world, std::vector<Color>& colors, Canvas& screen) {
     const vec pos = screen.rand(80);
     auto shape = Shape(rand()%2);
     auto *obj = new Object(pos, shape, size);
-    // bool ok = 1;
-    // for(const auto o2 : world.objs) {
-    //   auto info = obj->intersect(*o2);
-    //   if(info) {
-    //     i--; ok = 0; break;
-    //   }
-    // }
-    // if(!ok) continue;
+    for(const auto o : world.objs) {
+      const auto info = obj->intersect(*o);
+      if(info) {
+        i--;
+        delete obj;
+        obj = nullptr;
+        break;
+      }
+    }
+    if(!obj) continue;
     if(pos.y < -10 && !(rand()%2)) {
       obj->mass = 0;
       colors.push_back(Color(80));
@@ -54,10 +51,25 @@ void initWorld(World& world, std::vector<Color>& colors, Canvas& screen) {
           obj->setMass(size*size*4);
           break;
       }
-      colors.push_back(Color::rand(120, 250));
+      colors.push_back(Color::rand(120, 200));
     }
     obj -> name = i+1;
     world.add(obj);
+  }
+  for(const auto obj : world.objs) {
+    switch(obj->collision->shape) {
+      case Shape::Circle: {
+        Circle &c = obj->collision->as<Circle>();
+        obj->inertia = obj->getMass() * c.radius * c.radius / 2;
+        break;
+      }
+      case Shape::Rect: {
+        Rect &r = obj->collision->as<Rect>();
+        obj->inertia = obj->getMass() * (r.size.x*r.size.x + r.size.y*r.size.y) / 12;
+        break;
+      }
+    }
+    obj->inertia = obj->inertia <= 0 ? 0 : 1/obj->inertia;
   }
 }
 
@@ -65,9 +77,6 @@ int main() {
   World world;
   Canvas screen(800, 600);
   ege::setcaption("Physics Engine 2D");
-  world.restitution = 0.5;
-  world.damping = 0.98;
-  world.minSpeed = 0;
   srand(time(NULL));
   std::vector<Color> colors;
   initWorld(world, colors, screen);
@@ -129,6 +138,7 @@ int main() {
       const auto msg = ege::getkey();
       static const float speed = 1.2 * 60;
       if(msg.msg & ege::key_msg_char) continue;
+      if(msg.key == ege::key_tab) { world.step(1.0f/60.0f/(slow?3.5:1), 4); break; }
       if(!(msg.flags & ege::key_flag_first_down)) continue;
       switch(msg.key) {
         // case ege::key_W: player.speed.y += msg.msg & ege::key_msg_down ? speed : -speed; break;
@@ -138,7 +148,6 @@ int main() {
         case ege::key_esc: ege::closegraph(); return 0;
         case ege::key_enter: slow = !slow; break;
         case ege::key_space: pause = !pause; break;
-        case ege::key_tab: world.step(1.0f/60.0f/(slow?3.5:1), 4); break;
         case ege::key_R: world.clear(); colors.clear(); initWorld(world, colors, screen); break;
         case ege::key_X: {
           for(const auto obj : world.objs) {
@@ -165,27 +174,44 @@ int main() {
       // screen.pos += (world.objs[traceId]->pos - screen.pos) * 5e-2;
     }
     if(!pause) world.step(1.0f/60.0f/(slow?3.5:1), 4);
-    screen.clear(Color(20));
-    // world.draw();
+    screen.clear(20);
+    screen.setcolor(255);
     for(int i=0; i<world.objs.size(); i++) {
-      ege::setfillcolor(colors[i], screen.img);
+      screen.setfillcolor(colors[i]);
       // world.objs[i]->draw(screen);
       screen.draw(world.objs[i]);
       const auto o = world.objs[i];
       screen.line(o->trans.pos, o->trans.pos + o->speed.pos*.6);
-    }
-    for(int i=0; i<world.objs.size(); i++) {
-      if(i+1 != world.objs[i]->name) continue;
-      char buf[10];
-      sprintf(buf, "%d", world.objs[i]->name);
-      ege::outtextxy(screen.project(world.objs[i]->trans.pos).x-5, screen.project(world.objs[i]->trans.pos).y-5, buf, screen.img);
     }
     // for(const auto obj : world.objs) {
     //   if(!obj->name) continue;
     //   obj->hist_pos.push_back(obj->trans.pos);
     //   obj->hist_speed.push_back(obj->speed.pos);
     // }
+    screen.setcolor(Color(255, 100, 100));
+    screen.setfillcolor(Color(255, 0, 0));
+    // for(int i=0; i<concats.size(); i++) {
+    //   const vec p = concats[i];
+    //   const vec n = normals[i];
+    //   screen.circle(p, vec(3), true);
+    //   screen.line(p, p+n*10);
+    // }
+    for(const auto &info : collInfos) {
+      const vec p = info.p;
+      const vec n = info.n;
+      const float d = info.d;
+      screen.circle(p, vec(3), true);
+      screen.line(p, p+n*d);
+    }
     screen.render();
+    for(int i=0; i<world.objs.size(); i++) {
+      // if(i+1 != world.objs[i]->name) continue;
+      char buf[10];
+      // sprintf(buf, "%d", world.objs[i]->trans.angle.deg());
+      const vec pos = screen.project(world.objs[i]->trans.pos);
+      // ege::outtextxy(pos.x-5, pos.y-5, buf, screen.img);
+      ege::outtextxy(pos.x-5, pos.y-5, buf);
+    }
     ege::setcolor(ege::GRAY);
     ege::line(0, MousePos.y, screen.size.x*2, MousePos.y);
     ege::line(MousePos.x, 0, MousePos.x, screen.size.y*2);

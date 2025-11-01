@@ -10,7 +10,8 @@ class Collision {
   class Info {
    public:
     vec n; float d; vec p;
-    Info(const vec& n=vec(), float d=-1, const vec& p=vec())
+    Info() : n(0,0), d(-1), p(0,0) {}
+    Info(const vec& n, float d, const vec& p)
       : n(n), d(d), p(p) {}
     operator bool() const { return d > 0; }
     operator float() const { return d; }
@@ -20,7 +21,7 @@ class Collision {
       os << "Info(n=" << info.n << ", d=" << info.d << ")";
       return os;
     }
-    Info operator-() const { return Info(-n, d, p); }
+    // Info operator-() const { return Info(-n, d, p); }
   };
   const Shape shape;
   Collision(Shape shape) : shape(shape) {}
@@ -32,10 +33,16 @@ class Collision {
     //    shape==Shape::Circle && other.shape==Shape::Rect) {
     //   std::cout << "Rect-Circle intersect " << int(shape) << " " << int(other.shape) << " " << ::toStr(int(shape)<int(other.shape)) << "\n";
     // }
+    Info res;
     if(int(other.shape) > int(shape)) {
-      return -other._intersect(*this, -trans);
+      res = other._intersect(*this, -trans);
+      const Trans t = trans + Trans(res.p, res.n.angle());
+      res.p = t.pos;
+      res.n = -vec::angle(t.angle);
+    } else {
+      res = this->_intersect(other, trans);
     }
-    return this->_intersect(other, trans);
+    return res;
   }
   virtual bool include(const vec&) const = 0;
   template <typename T> T &as() { return dynamic_cast<T&>(*this); }
@@ -68,6 +75,7 @@ class Circle : public Collision {
           return Info(n, d, pos + n * radius);
         } else return Info();
       }
+      default: error("Circle-Rect intersection not implemented"); break;
     }
     return Info();
   }
@@ -75,6 +83,41 @@ class Circle : public Collision {
     return "size=" + std::to_string(radius);
   }
 };
+class Range {
+ public:
+  float min, max;
+  Range(float min, float max) : min(min), max(max) {}
+  Range operator&(const Range& other) const {
+    return Range(std::fmax(min, other.min), std::fmin(max, other.max));
+  }
+  operator float() const { return max - min; }
+};
+Range SAT(vec axis, const std::vector<vec>& points) {
+  float min = 1e9;
+  float max = -1e9;
+  for(const vec& p : points) {
+    float proj = p.dot(axis);
+    min = std::fmin(min, proj);
+    max = std::fmax(max, proj);
+  }
+  return Range(min, max);
+}
+Range SAT(vec axis, vec p, float r) {
+  float proj = p.dot(axis);
+  return Range(proj - r, proj + r);
+}
+int closestPoint(const vec& point, const std::vector<vec>& points) {
+  int closestID = -1;
+  float closestDist = 1e9;
+  for(int i=0; i<points.size(); i++) {
+    const float dist = point.dist(points[i]);
+    if(dist < closestDist) {
+      closestDist = dist;
+      closestID = i;
+    }
+  }
+  return closestID;
+}
 class Rect : public Collision {
  public:
   vec size;
@@ -92,85 +135,81 @@ class Rect : public Collision {
       case Shape::Circle: {
         // std::cout << "Rect-Circle intersect called\n";
         const Circle& c = other.as<Circle>();
-        vec points[] = {
+        const std::vector<vec> points = {
           size*vec( 1,  1),
           size*vec(-1,  1),
           size*vec(-1, -1),
           size*vec( 1, -1),
         };
-        vec minAxis;
+        std::vector<vec> axiss = {
+          vec(1,0), vec(0,1), (pos-closestPoint(pos, points)).normalize()
+        };
         float minDepth = 1e9;
-        for(int i=0; i<4; i++) {
-          const vec p1 = points[i];
-          const vec p2 = points[(i+1)%4];
-          const vec edge = p2 - p1;
-          const vec axis = edge.perpendicular().normalize();
-          float minR = 1e9, maxR = -1e9;
-          float minC = 1e9, maxC = -1e9;
-          for(int j=0; j<4; j++) {
-            const float proj = points[j].dot(axis);
-            minR = std::fmin(minR, proj);
-            maxR = std::fmax(maxR, proj);
-          }
-          const float proj = pos.dot(axis);
-          minC = proj - c.radius;
-          maxC = proj + c.radius;
-          if(maxR <= minC || maxC <= minR) return Info();
-          const float depth = std::fmin(maxR - minC, maxC - minR);
+        vec minAxis;
+        for(const vec& axis : axiss) {
+          const Range r1 = SAT(axis, points);
+          const Range r2 = SAT(axis, pos, c.radius);
+          const Range overlap = r1 & r2;
+          if(overlap.min >= overlap.max) return Info();
+          const float depth = overlap;
           if(depth < minDepth) {
             minDepth = depth;
             minAxis = axis;
           }
         }
-        int closestID = -1;
-        float closestDist = 1e9;
-        for(int i=0; i<4; i++) {
-          const float dist = pos.dist(points[i]);
-          if(dist < closestDist) {
-            closestDist = dist;
-            closestID = i;
-          }
-        }
-        vec closest = points[closestID];
-        vec axis = (pos - closest).normalize();
-        // if(axis.dot(minAxis) < 0) axis = -axis;
-        float minR = 1e9, maxR = -1e9;
-        float minC = 1e9, maxC = -1e9;
-        for(int j=0; j<4; j++) {
-          const float proj = points[j].dot(axis);
-          minR = std::fmin(minR, proj);
-          maxR = std::fmax(maxR, proj);
-        }
-        const float proj = pos.dot(axis);
-        minC = proj - c.radius;
-        maxC = proj + c.radius;
-        if(maxR <= minC || maxC <= minR) return Info();
-        const float depth = std::fmin(maxR - minC, maxC - minR);
-        if(depth < minDepth) {
-          minDepth = depth;
-          minAxis = axis;
-        }
         if(pos.dot(minAxis) < 0) minAxis = -minAxis;
-        minAxis = pos.sign() * abs(minAxis).normalize();
+        // minAxis = pos.sign() * abs(minAxis).normalize();
         return Info(minAxis, minDepth, pos - minAxis * c.radius);
       }
       case Shape::Rect: {
         const Rect& r = other.as<Rect>();
-        vec dir = pos.sign();
-        vec diff = abs(pos);
-        vec total = size + r.size;
-        vec overlap = total - diff;
-        if(overlap.x > 0 && overlap.y > 0) {
-          if(overlap.x < overlap.y) {
-            vec n = diff.x < 0 ? vec(-1, 0) : vec(1, 0);
-            return Info(n*dir, overlap.x, pos + n * size.x * dir);
-          } else {
-            vec n = diff.y < 0 ? vec(0, -1) : vec(0, 1);
-            return Info(n*dir, overlap.y, pos + n * size.y * dir);
+        const std::vector<vec> points1 = {
+          size*vec( 1,  1),
+          size*vec(-1,  1),
+          size*vec(-1, -1),
+          size*vec( 1, -1),
+        };
+        const std::vector<vec> points2 = {
+          r.size*vec( 1,  1) + trans,
+          r.size*vec(-1,  1) + trans,
+          r.size*vec(-1, -1) + trans,
+          r.size*vec( 1, -1) + trans,
+        };
+        std::vector<vec> axiss = {
+          vec(1,0), vec(0,1), vec::angle(rot), vec::angle(rot).prep()
+        };
+        float minDepth = 1e9;
+        vec minAxis;
+        for(const vec& axis : axiss) {
+          const Range r1 = SAT(axis, points1);
+          const Range r2 = SAT(axis, points2);
+          const Range overlap = r1 & r2;
+          if(overlap.min >= overlap.max) return Info();
+          const float depth = overlap;
+          if(depth < minDepth) {
+            minDepth = depth;
+            minAxis = axis;
           }
         }
+        if(pos.dot(minAxis) < 0) minAxis = -minAxis;
+        const int id = closestPoint(vec(0,0), points2);
+        return Info(minAxis, minDepth, points2[id]);
+        // vec dir = pos.sign();
+        // vec diff = abs(pos);
+        // vec total = size + r.size;
+        // vec overlap = total - diff;
+        // if(overlap.x > 0 && overlap.y > 0) {
+        //   if(overlap.x < overlap.y) {
+        //     vec n = diff.x < 0 ? vec(-1, 0) : vec(1, 0);
+        //     return Info(n*dir, overlap.x, (size-overlap/2) * dir);
+        //   } else {
+        //     vec n = diff.y < 0 ? vec(0, -1) : vec(0, 1);
+        //     return Info(n*dir, overlap.y, (size-overlap/2) * dir);
+        //   }
+        // }
         return Info();
       }
+      default: error("Rect-Unknown intersection not implemented"); break;
     }
     return Info();
   }
