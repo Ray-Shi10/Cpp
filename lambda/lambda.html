@@ -1,0 +1,56 @@
+<html lang="zh">
+  <head>
+    <title>Lambda Calculus</title>
+    <meta charset="utf-8">
+    <script src="./lambda.js"></script>
+    <script src="./lambda2.js"></script>
+    <style>
+      * {
+        padding: 0;
+        margin: 0;
+      }
+      body {
+        background-color: #000F;
+        color: #FFF;
+        position: absolute;
+        left: 0; right: 0;
+        top: 0; bottom: 0;
+        font-size: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div style="width:100%;height:30px;">
+      FunFuncFuc&nbsp;&nbsp;&nbsp;&nbsp;
+      <span id=".levelName">基础:布尔值-1&nbsp;&nbsp;非门</span>
+    </div>
+    <div style="width:100%;height:calc(100% - 30px);">
+      <div style="height:100%;width:40%;">
+        <textarea id=".codeInput" style="width:100%;height:100%;background-color:#423;color:#FFF;font-size:16px;resize:none;" spellcheck="false">-- 在此输入 Lambda Calculus 代码 --</textarea>
+      </div>
+      <div style="position:absolute;right:0;top:30px;bottom:0;height:100%;left:40%;"></div>
+    </div>
+    <script>
+      const codeInput = document.querySelector('#\\.codeInput');
+      level = {
+        inputs: [
+          [ 'true' ],
+          [ 'false' ],
+        ],
+      }
+      codeInput.oninput = (e)=>{
+        // try {
+          const lambda = Lambda(codeInput.value);
+          console.log(lambda+'');
+          for(const input of level.inputs) {
+            console.log('Input:', input+'');
+            const output = lambda(...input.map(String));
+            console.log('Output:', output.res()+'', [...output].at(-1)(true,false));
+          }
+        // } catch(err) {
+        //   console.error(err);
+        // }
+      };
+    </script>
+  </body>
+</html>
